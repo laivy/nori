@@ -1,0 +1,288 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 4,
+        "minor": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "installDir": "${sourceDir}/install/${presetName}",
+            "cacheVariables": {
+                "CMAKE_COMPILE_WARNING_AS_ERROR": "ON",
+                "CMAKE_LINK_WARNING_AS_ERROR": "ON",
+                "NORI_BUILD_CORE": "ON",
+                "NORI_BUILD_RESOURCE": "ON",
+                "NORI_BUILD_NETWORK": "ON",
+                "NORI_BUILD_CLI": "ON"
+            }
+        },
+        {
+            "name": "windows-base",
+            "hidden": true,
+            "inherits": "base",
+            "warnings": {
+                "unusedCli": false
+            },
+            "architecture": {
+                "value": "x64"
+            },
+            "cacheVariables": {
+                "NORI_BUILD_GRAPHICS": "ON",
+                "NORI_ENABLE_IMGUI": "ON",
+                "NORI_BUILD_NORITOR": "ON"
+            }
+        },
+        {
+            "name": "windows-debug-x64",
+            "inherits": "windows-base"
+        },
+        {
+            "name": "windows-release-x64",
+            "inherits": "windows-base",
+            "cacheVariables": {
+                "BUILD_TESTING": "ON"
+            }
+        },
+        {
+            "name": "windows-package-x64",
+            "inherits": "windows-base",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "installDir": "${sourceDir}/install/${presetName}",
+            "cacheVariables": {
+                "NORI_BUILD_CLI": "OFF",
+                "NORI_BUILD_NORITOR": "OFF",
+                "NORI_INSTALL": "ON",
+                "BUILD_TESTING": "ON"
+            }
+        },
+        {
+            "name": "linux-release-x64",
+            "inherits": "base",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "NORI_BUILD_GRAPHICS": "OFF",
+                "NORI_ENABLE_IMGUI": "OFF",
+                "NORI_BUILD_NORITOR": "OFF",
+                "BUILD_TESTING": "ON"
+            }
+        },
+        {
+            "name": "linux-package-x64",
+            "inherits": "linux-release-x64",
+            "generator": "Ninja Multi-Config",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": null,
+                "NORI_BUILD_CLI": "OFF",
+                "NORI_INSTALL": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "windows-debug-x64",
+            "configurePreset": "windows-debug-x64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-release-x64",
+            "configurePreset": "windows-release-x64",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "windows-package-debug-x64",
+            "configurePreset": "windows-package-x64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-package-release-x64",
+            "configurePreset": "windows-package-x64",
+            "configuration": "Release"
+        },
+        {
+            "name": "linux-release-x64",
+            "configurePreset": "linux-release-x64"
+        },
+        {
+            "name": "linux-package-debug-x64",
+            "configurePreset": "linux-package-x64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-package-release-x64",
+            "configurePreset": "linux-package-x64",
+            "configuration": "Release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "windows-release-x64",
+            "configurePreset": "windows-release-x64",
+            "configuration": "RelWithDebInfo",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error"
+            }
+        },
+        {
+            "name": "windows-package-release-x64",
+            "configurePreset": "windows-package-x64",
+            "configuration": "Release",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error"
+            }
+        },
+        {
+            "name": "linux-release-x64",
+            "configurePreset": "linux-release-x64",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error"
+            }
+        },
+        {
+            "name": "linux-package-x64",
+            "configurePreset": "linux-package-x64",
+            "configuration": "Release",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error"
+            }
+        }
+    ],
+    "packagePresets": [
+        {
+            "name": "windows-package-x64",
+            "configurePreset": "windows-package-x64",
+            "generators": [
+                "ZIP"
+            ],
+            "configurations": [
+                "Debug",
+                "Release"
+            ]
+        },
+        {
+            "name": "linux-package-x64",
+            "configurePreset": "linux-package-x64",
+            "generators": [
+                "ZIP"
+            ],
+            "configurations": [
+                "Debug",
+                "Release"
+            ]
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "dev",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "windows-debug-x64"
+                },
+                {
+                    "type": "build",
+                    "name": "windows-debug-x64"
+                }
+            ]
+        },
+        {
+            "name": "verify",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "windows-release-x64"
+                },
+                {
+                    "type": "build",
+                    "name": "windows-release-x64"
+                },
+                {
+                    "type": "test",
+                    "name": "windows-release-x64"
+                }
+            ]
+        },
+        {
+            "name": "linux-verify",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "linux-release-x64"
+                },
+                {
+                    "type": "build",
+                    "name": "linux-release-x64"
+                },
+                {
+                    "type": "test",
+                    "name": "linux-release-x64"
+                }
+            ]
+        },
+        {
+            "name": "package",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "windows-package-x64"
+                },
+                {
+                    "type": "build",
+                    "name": "windows-package-debug-x64"
+                },
+                {
+                    "type": "build",
+                    "name": "windows-package-release-x64"
+                },
+                {
+                    "type": "test",
+                    "name": "windows-package-release-x64"
+                },
+                {
+                    "type": "package",
+                    "name": "windows-package-x64"
+                }
+            ]
+        },
+        {
+            "name": "linux-package",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "linux-package-x64"
+                },
+                {
+                    "type": "build",
+                    "name": "linux-package-debug-x64"
+                },
+                {
+                    "type": "build",
+                    "name": "linux-package-release-x64"
+                },
+                {
+                    "type": "test",
+                    "name": "linux-package-x64"
+                },
+                {
+                    "type": "package",
+                    "name": "linux-package-x64"
+                }
+            ]
+        }
+    ]
+}
