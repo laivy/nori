@@ -1,0 +1,10 @@
+#pragma once
+#include "core.hpp"
+#include "resource/accessor.hpp"
+#include "resource/error_code.hpp"
+#include "resource/handle.hpp"
+#include "resource/image.hpp"
+#include "resource/iterator.hpp"
+#include "resource/path.hpp"
+#include "resource/runtime.hpp"
+#include "resource/type.hpp"

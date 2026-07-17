@@ -1,0 +1,65 @@
+name: build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows release x64 (msvc 145)
+            os: windows-2025-vs2026
+            workflow: verify
+            build-preset: windows-release-x64
+          - name: linux release x64 (gcc 16)
+            os: ubuntu-24.04
+            workflow: linux-verify
+            build-preset: linux-release-x64
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+
+      - name: setup cmake
+        if: runner.os == 'Linux'
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~4.0.0"
+
+      - name: install gcc 16
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install --yes gcc-16 g++-16
+          echo "CC=gcc-16" >> "$GITHUB_ENV"
+          echo "CXX=g++-16" >> "$GITHUB_ENV"
+
+      - name: cache cmake dependencies
+        uses: actions/cache@v6
+        with:
+          path: build/${{ matrix.build-preset }}/_deps
+          key: ${{ runner.os }}-${{ matrix.build-preset }}-deps-${{ hashFiles('CMakeLists.txt', 'CMakePresets.json', '**/CMakeLists.txt', 'cmake/**/*.cmake') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.build-preset }}-deps-
+
+      - name: run cmake workflow
+        run: cmake --workflow --preset ${{ matrix.workflow }}

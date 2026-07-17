@@ -1,0 +1,63 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+if (@NORI_BUILD_NETWORK@)
+    find_dependency(Threads)
+endif ()
+
+if (@NORI_BUILD_GRAPHICS@)
+    if (NOT TARGET nori::directx_headers)
+        add_library(nori::directx_headers STATIC IMPORTED)
+        set_target_properties(nori::directx_headers PROPERTIES
+            IMPORTED_CONFIGURATIONS "Debug;Release"
+            IMPORTED_LOCATION_DEBUG "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/Debug/DirectX-Headers.lib"
+            IMPORTED_LOCATION_RELEASE "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/Release/DirectX-Headers.lib"
+            MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
+            MAP_IMPORTED_CONFIG_MINSIZEREL Release
+        )
+    endif ()
+
+    if (NOT TARGET nori::directx_guids)
+        add_library(nori::directx_guids STATIC IMPORTED)
+        set_target_properties(nori::directx_guids PROPERTIES
+            IMPORTED_CONFIGURATIONS "Debug;Release"
+            IMPORTED_LOCATION_DEBUG "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/Debug/DirectX-Guids.lib"
+            IMPORTED_LOCATION_RELEASE "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/Release/DirectX-Guids.lib"
+            MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
+            MAP_IMPORTED_CONFIG_MINSIZEREL Release
+        )
+    endif ()
+endif ()
+
+include("${CMAKE_CURRENT_LIST_DIR}/nori-targets.cmake")
+
+set(nori_supported_components core resource graphics imgui network)
+foreach (nori_component IN LISTS nori_supported_components)
+    if (TARGET nori::${nori_component})
+        set(nori_${nori_component}_FOUND TRUE)
+    else ()
+        set(nori_${nori_component}_FOUND FALSE)
+    endif ()
+endforeach ()
+
+foreach (nori_component IN LISTS nori_FIND_COMPONENTS)
+    if (NOT nori_component IN_LIST nori_supported_components)
+        set(nori_${nori_component}_FOUND FALSE)
+        set(nori_NOT_FOUND_MESSAGE "Unsupported nori component: ${nori_component}")
+    endif ()
+endforeach ()
+
+foreach (nori_target IN ITEMS core resource graphics imgui network)
+    if (TARGET nori::${nori_target})
+        set_target_properties(nori::${nori_target} PROPERTIES
+            MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
+            MAP_IMPORTED_CONFIG_MINSIZEREL Release
+        )
+    endif ()
+endforeach ()
+
+unset(nori_component)
+unset(nori_supported_components)
+
+check_required_components(nori)
