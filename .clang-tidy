@@ -1,0 +1,9 @@
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-signed-bitwise,
+  clang-analyzer-*
+HeaderFilterRegex: '^(include|src|tools|tests)/.*'
+FormatStyle: file
+SystemHeaders: false

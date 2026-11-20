@@ -1,0 +1,6 @@
+.vs/
+bin/
+build/
+install/
+lib/
+tools/noritor/data/

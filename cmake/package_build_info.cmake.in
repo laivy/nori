@@ -1,0 +1,40 @@
+set(nori_build_info [=[{
+  "version": "@PROJECT_VERSION@",
+  "os": "@nori_package_system@",
+  "architecture": "@nori_package_arch@",
+  "compiler": "@nori_package_compiler@",
+  "compilerVersion": "@CMAKE_CXX_COMPILER_VERSION@",
+  "toolsetVersion": @nori_toolset_version_json@,
+  "configurations": [],
+  "gitCommit": null
+}]=])
+
+set(nori_package_configurations "${CPACK_BUILD_CONFIG}")
+if (NOT nori_package_configurations)
+    set(nori_package_configurations "@CMAKE_BUILD_TYPE@")
+    if (NOT nori_package_configurations)
+        set(nori_package_configurations Release)
+    endif ()
+endif ()
+
+set(nori_configuration_index 0)
+foreach (nori_configuration IN LISTS nori_package_configurations)
+    string(JSON nori_build_info SET "${nori_build_info}" configurations ${nori_configuration_index} "\"${nori_configuration}\"")
+    math(EXPR nori_configuration_index "${nori_configuration_index} + 1")
+endforeach ()
+
+find_package(Git QUIET)
+if (Git_FOUND)
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" -C "@PROJECT_SOURCE_DIR@" rev-parse HEAD
+        RESULT_VARIABLE nori_git_result
+        OUTPUT_VARIABLE nori_git_commit
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if (nori_git_result EQUAL 0)
+        string(JSON nori_build_info SET "${nori_build_info}" gitCommit "\"${nori_git_commit}\"")
+    endif ()
+endif ()
+
+file(WRITE "${CPACK_TEMPORARY_DIRECTORY}/build-info.json" "${nori_build_info}\n")
