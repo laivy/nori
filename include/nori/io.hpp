@@ -1,0 +1,14 @@
+#pragma once
+#include <nori/io/acceptor.hpp>
+#include <nori/io/awaitable.hpp>
+#include <nori/io/co_spawn.hpp>
+#include <nori/io/connect.hpp>
+#include <nori/io/connection.hpp>
+#include <nori/io/context.hpp>
+#include <nori/io/endpoint.hpp>
+#include <nori/io/error_code.hpp>
+#include <nori/io/packet.hpp>
+#include <nori/io/post.hpp>
+#include <nori/io/steady_timer.hpp>
+#include <nori/io/strand.hpp>
+#include <nori/io/task_handle.hpp>

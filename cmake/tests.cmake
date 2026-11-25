@@ -1,0 +1,8 @@
+function(nori_add_test target library labels)
+    cmake_parse_arguments(PARSE_ARGV 3 test "" "" "SOURCES;PROPERTIES")
+    add_executable(${target} ${test_SOURCES})
+    nori_configure_target(${target})
+    target_link_libraries(${target} PRIVATE ${library} GTest::gtest_main)
+    add_test(NAME ${target} COMMAND ${target})
+    set_tests_properties(${target} PROPERTIES LABELS "${labels}" ${test_PROPERTIES})
+endfunction ()

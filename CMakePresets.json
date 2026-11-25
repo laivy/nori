@@ -1,0 +1,329 @@
+{
+  "version": 9,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 2
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_LINK_WARNING_AS_ERROR": "ON",
+        "FETCHCONTENT_TRY_FIND_PACKAGE_MODE": "NEVER",
+        "NORI_BUILD_TESTS": "ON",
+        "NORI_INSTALL": "OFF"
+      }
+    },
+    {
+      "name": "linux-gcc",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Ninja Multi-Config",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc-16",
+        "CMAKE_CXX_COMPILER": "g++-16",
+        "CMAKE_C_FLAGS": "-m64",
+        "CMAKE_CXX_FLAGS": "-m64",
+        "NORI_BUILD_CORE": "ON",
+        "NORI_BUILD_IO": "ON",
+        "NORI_BUILD_RESOURCE": "ON",
+        "NORI_BUILD_ASSET": "OFF",
+        "NORI_BUILD_GRAPHICS": "OFF",
+        "NORI_ENABLE_IMGUI": "OFF",
+        "NORI_BUILD_CLI": "ON",
+        "NORI_BUILD_NORITOR": "OFF"
+      }
+    },
+    {
+      "name": "windows-msvc",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Ninja Multi-Config",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "NORI_BUILD_CORE": "ON",
+        "NORI_BUILD_IO": "ON",
+        "NORI_BUILD_RESOURCE": "ON",
+        "NORI_BUILD_ASSET": "ON",
+        "NORI_BUILD_GRAPHICS": "ON",
+        "NORI_ENABLE_IMGUI": "ON",
+        "NORI_BUILD_CLI": "ON",
+        "NORI_BUILD_NORITOR": "ON"
+      }
+    },
+    {
+      "name": "windows-msvc-x64",
+      "inherits": "windows-msvc"
+    },
+    {
+      "name": "windows-package-x64",
+      "inherits": "windows-msvc",
+      "cacheVariables": {
+        "NORI_BUILD_CLI": "OFF",
+        "NORI_BUILD_NORITOR": "OFF",
+        "NORI_INSTALL": "ON"
+      }
+    },
+    {
+      "name": "linux-gcc-x64",
+      "inherits": "linux-gcc"
+    },
+    {
+      "name": "linux-package-x64",
+      "inherits": "linux-gcc",
+      "cacheVariables": {
+        "NORI_INSTALL": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-debug-x64",
+      "configurePreset": "windows-msvc-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-release-x64",
+      "configurePreset": "windows-msvc-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-package-debug-x64",
+      "configurePreset": "windows-package-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-package-release-x64",
+      "configurePreset": "windows-package-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-debug-x64",
+      "configurePreset": "linux-gcc-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-release-x64",
+      "configurePreset": "linux-gcc-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-package-debug-x64",
+      "configurePreset": "linux-package-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-package-release-x64",
+      "configurePreset": "linux-package-x64",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "test-base",
+      "hidden": true,
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "jobs": 2,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "windows-debug-x64",
+      "inherits": "test-base",
+      "configurePreset": "windows-msvc-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-release-x64",
+      "inherits": "test-base",
+      "configurePreset": "windows-msvc-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-package-release-x64",
+      "inherits": "test-base",
+      "configurePreset": "windows-package-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-debug-x64",
+      "inherits": "test-base",
+      "configurePreset": "linux-gcc-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-release-x64",
+      "inherits": "test-base",
+      "configurePreset": "linux-gcc-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-package-x64",
+      "inherits": "test-base",
+      "configurePreset": "linux-package-x64",
+      "configuration": "Release"
+    }
+  ],
+  "packagePresets": [
+    {
+      "name": "windows-package-x64",
+      "configurePreset": "windows-package-x64",
+      "generators": [
+        "ZIP"
+      ],
+      "configurations": [
+        "Debug",
+        "Release"
+      ]
+    },
+    {
+      "name": "linux-package-x64",
+      "configurePreset": "linux-package-x64",
+      "generators": [
+        "TGZ"
+      ],
+      "configurations": [
+        "Debug",
+        "Release"
+      ]
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "windows-dev",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-msvc-x64"
+        },
+        {
+          "type": "build",
+          "name": "windows-debug-x64"
+        },
+        {
+          "type": "test",
+          "name": "windows-debug-x64"
+        }
+      ]
+    },
+    {
+      "name": "windows-verify",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-msvc-x64"
+        },
+        {
+          "type": "build",
+          "name": "windows-release-x64"
+        },
+        {
+          "type": "test",
+          "name": "windows-release-x64"
+        }
+      ]
+    },
+    {
+      "name": "windows-package",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-package-x64"
+        },
+        {
+          "type": "build",
+          "name": "windows-package-debug-x64"
+        },
+        {
+          "type": "build",
+          "name": "windows-package-release-x64"
+        },
+        {
+          "type": "test",
+          "name": "windows-package-release-x64"
+        },
+        {
+          "type": "package",
+          "name": "windows-package-x64"
+        }
+      ]
+    },
+    {
+      "name": "linux-dev",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-gcc-x64"
+        },
+        {
+          "type": "build",
+          "name": "linux-debug-x64"
+        },
+        {
+          "type": "test",
+          "name": "linux-debug-x64"
+        }
+      ]
+    },
+    {
+      "name": "linux-verify",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-gcc-x64"
+        },
+        {
+          "type": "build",
+          "name": "linux-release-x64"
+        },
+        {
+          "type": "test",
+          "name": "linux-release-x64"
+        }
+      ]
+    },
+    {
+      "name": "linux-package",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-package-x64"
+        },
+        {
+          "type": "build",
+          "name": "linux-package-debug-x64"
+        },
+        {
+          "type": "build",
+          "name": "linux-package-release-x64"
+        },
+        {
+          "type": "test",
+          "name": "linux-package-x64"
+        },
+        {
+          "type": "package",
+          "name": "linux-package-x64"
+        }
+      ]
+    }
+  ]
+}
