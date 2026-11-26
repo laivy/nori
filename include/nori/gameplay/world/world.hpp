@@ -3,11 +3,11 @@
 #include <concepts>
 #include <cstdint>
 #include <functional>
-#include <map>
 #include <memory>
 #include <utility>
 #include <vector>
 
+#include <nori/core/multicast_delegate.hpp>
 #include <nori/core/rtti.hpp>
 #include <nori/gameplay/object/object.hpp>
 #include <nori/gameplay/object/object_registry.hpp>
@@ -57,12 +57,6 @@ public:
     void flush_pending_changes();
 
 private:
-    struct subscriber
-    {
-        trigger_callback callback;
-        bool removed{};
-    };
-
     struct body_owner
     {
         physics2d::body_handle body;
@@ -86,14 +80,12 @@ private:
     void collect_trigger_events();
 
     std::uint64_t id_;
-    std::uint64_t next_subscription_{1};
     physics2d::scene physics_;
     update_scheduler scheduler_;
     std::vector<object_handle> pending_destructions_;
     object_registry objects_;
-    std::map<std::uint64_t, subscriber> subscribers_;
+    core::multicast_delegate<void(const trigger_changed&)> trigger_changed_;
     std::vector<trigger_changed> events_;
-    bool dispatching_events_{};
     std::vector<body_owner> body_owners_;
     std::vector<active_trigger> active_triggers_;
 };

@@ -15,20 +15,13 @@ bool is_same_collider(nori::physics2d::collider_ref left, nori::physics2d::colli
 
 namespace nori::gameplay
 {
-
 event_subscription world::subscribe_trigger_changed(trigger_callback callback)
 {
     if (!callback)
     {
         core::abort("cannot subscribe a null event callback");
     }
-    if (next_subscription_ == 0)
-    {
-        core::abort("event subscription identifier exhausted");
-    }
-    const auto sequence{next_subscription_++};
-    subscribers_.emplace(sequence, subscriber{std::move(callback)});
-    return {id_, sequence};
+    return {id_, trigger_changed_.add(std::move(callback))};
 }
 
 bool world::unsubscribe(event_subscription subscription)
@@ -37,42 +30,16 @@ bool world::unsubscribe(event_subscription subscription)
     {
         return false;
     }
-    const auto entry{subscribers_.find(subscription.sequence)};
-    if (entry == subscribers_.end() || entry->second.removed)
-    {
-        return false;
-    }
-    if (dispatching_events_)
-    {
-        entry->second.removed = true;
-    }
-    else
-    {
-        subscribers_.erase(entry);
-    }
-    return true;
+    return trigger_changed_.remove(subscription.slot);
 }
 
 void world::dispatch_events()
 {
     const auto pending{std::exchange(events_, {})};
-    const auto last_sequence{next_subscription_ - 1};
-    dispatching_events_ = true;
     for (const auto& event : pending)
     {
-        for (auto it{subscribers_.begin()}; it != subscribers_.end() && it->first <= last_sequence; ++it)
-        {
-            if (!it->second.removed)
-            {
-                it->second.callback(event);
-            }
-        }
+        trigger_changed_.broadcast(event);
     }
-    dispatching_events_ = false;
-    std::erase_if(subscribers_, [](const auto& entry)
-    {
-        return entry.second.removed;
-    });
 }
 
 void world::register_body(physics2d::body_handle body, object_handle owner)

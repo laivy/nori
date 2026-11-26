@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <nori/core/multicast_delegate.hpp>
 #include <nori/gameplay/object/object_handle.hpp>
 
 namespace nori::gameplay
@@ -25,6 +26,6 @@ struct trigger_changed
 struct event_subscription
 {
     std::uint64_t world_id;
-    std::uint64_t sequence;
+    core::multicast_delegate<void(const trigger_changed&)>::handle slot;
 };
 } // namespace nori::gameplay

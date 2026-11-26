@@ -666,6 +666,14 @@ TEST(gameplay_framework_test, gameplay_trigger_events)
 
     std::vector<nori::gameplay::trigger_changed> events;
     std::vector<std::size_t> late_events;
+    unsigned once_count{};
+    nori::gameplay::event_subscription once{};
+    once = active.subscribe_trigger_changed([&](const nori::gameplay::trigger_changed&)
+    {
+        ++once_count;
+        EXPECT_TRUE(active.unsubscribe(once));
+        EXPECT_FALSE(active.unsubscribe(once));
+    });
     static_cast<void>(active.subscribe_trigger_changed([&](const nori::gameplay::trigger_changed& event)
     {
         ASSERT_TRUE((event.sensor == sensor && event.visitor == visitor && event.visitor_collider == 0)) << "trigger was not mapped to its Gameplay owners";
@@ -684,13 +692,40 @@ TEST(gameplay_framework_test, gameplay_trigger_events)
         }
     }));
     active.fixed_update(fixed_step);
-    ASSERT_TRUE((events.size() == 2 && events[0].phase == nori::gameplay::trigger_phase::begin && events[1].phase == nori::gameplay::trigger_phase::begin && events[0].sensor_collider != events[1].sensor_collider && late_events.empty() && !active.find_object(visitor))) << "begin batch did not include both colliders or defer subscription and deletion through delivery";
+    ASSERT_EQ(events.size(), 2u);
+    EXPECT_EQ(events[0].phase, nori::gameplay::trigger_phase::begin);
+    EXPECT_EQ(events[1].phase, nori::gameplay::trigger_phase::begin);
+    EXPECT_NE(events[0].sensor_collider, events[1].sensor_collider);
+    EXPECT_EQ(late_events, (std::vector{events[1].sensor_collider}));
+    EXPECT_FALSE(active.find_object(visitor));
+    EXPECT_EQ(once_count, 1u);
+    EXPECT_FALSE(active.unsubscribe(once));
     active.fixed_update(0.0f);
     ASSERT_TRUE((events.size() == 2)) << "invalid fixed step replayed the previous physics events";
     active.fixed_update(fixed_step);
-    ASSERT_TRUE((events.size() == 4 && events[2].phase == nori::gameplay::trigger_phase::end && events[3].phase == nori::gameplay::trigger_phase::end && events[2].sensor_collider != events[3].sensor_collider && late_events == std::vector{events[2].sensor_collider, events[3].sensor_collider})) << "end batch lost the removed visitor or did not reach the new subscriber in order";
+    ASSERT_EQ(events.size(), 4u);
+    EXPECT_EQ(events[2].phase, nori::gameplay::trigger_phase::end);
+    EXPECT_EQ(events[3].phase, nori::gameplay::trigger_phase::end);
+    EXPECT_NE(events[2].sensor_collider, events[3].sensor_collider);
+    EXPECT_EQ(late_events, (std::vector{events[1].sensor_collider, events[2].sensor_collider, events[3].sensor_collider}));
     active.fixed_update(fixed_step);
-    ASSERT_TRUE((events.size() == 4)) << "trigger end was delivered more than once";
+    ASSERT_EQ(events.size(), 4u);
+    EXPECT_EQ(once_count, 1u);
+}
+
+TEST(gameplay_framework_test, trigger_subscription_handles)
+{
+    nori::gameplay::world first;
+    nori::gameplay::world second;
+    const auto original{first.subscribe_trigger_changed([](const nori::gameplay::trigger_changed&) {})};
+    const auto foreign{second.subscribe_trigger_changed([](const nori::gameplay::trigger_changed&) {})};
+    EXPECT_FALSE(first.unsubscribe(foreign));
+    EXPECT_TRUE(first.unsubscribe(original));
+    EXPECT_FALSE(first.unsubscribe(original));
+    const auto replacement{first.subscribe_trigger_changed([](const nori::gameplay::trigger_changed&) {})};
+    EXPECT_FALSE(first.unsubscribe(original));
+    EXPECT_TRUE(first.unsubscribe(replacement));
+    EXPECT_TRUE(second.unsubscribe(foreign));
 }
 
 

@@ -138,7 +138,7 @@ void world::clear()
         destroy_object(handle);
     }
     flush_pending_changes();
-    subscribers_.clear();
+    trigger_changed_ = {};
     events_.clear();
     body_owners_.clear();
     active_triggers_.clear();
