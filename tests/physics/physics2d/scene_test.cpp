@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+#include <nori/core/vector.hpp>
 #include <nori/physics2d/body.hpp>
 #include <nori/physics2d/collider.hpp>
 #include <nori/physics2d/scene.hpp>
@@ -155,7 +156,7 @@ TEST(physics2d_scene_test, triggers)
         ASSERT_EQ(event.first.body, sensor) << "invalid trigger begin data";
         ASSERT_EQ(event.second.body, visitor) << "invalid trigger begin data";
     }
-    ASSERT_FALSE(!world.get_contacts(visitor).empty()) << "sensor affected physical motion";
+    EXPECT_TRUE(world.get_contacts(visitor).empty()) << "sensor affected physical motion";
     EXPECT_NEAR(world.get_transform(visitor).value().position.x, 0.0f, 0.001f) << "sensor affected physical motion";
     ASSERT_TRUE(world.set_transform(visitor, {{0.8f, 0.0f}, 0.0f})) << "could not leave one sensor";
     world.step(step);
@@ -208,7 +209,7 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
     ASSERT_TRUE(world.add_box_collider({ground, {5.0f, 0.5f}})) << "colliders created";
     ASSERT_TRUE(world.add_box_collider({body, {0.5f, 0.5f}})) << "colliders created";
     ASSERT_FALSE(has_contact_normal(world, body, {0.0f, 1.0f})) << "airborne and invalid bodies are not grounded";
-    ASSERT_FALSE(!world.get_contacts({}).empty()) << "airborne and invalid bodies are not grounded";
+    EXPECT_TRUE(world.get_contacts({}).empty()) << "airborne and invalid bodies are not grounded";
     for (int i{}; i < 120; ++i)
     {
         world.step(1.0f / 60.0f);
@@ -226,7 +227,7 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
     ASSERT_FALSE(has_contact_normal(world, body, {0.0f, 1.0f})) << "jump leaves the ground";
     EXPECT_NEAR(world.get_transform(body).value().angle_radians, 0.0f, 0.001f) << "locked body does not rotate";
     ASSERT_TRUE(world.destroy_body(body)) << "destroyed body is not grounded";
-    ASSERT_FALSE(has_contact_normal(world, body, {0.0f, 1.0f})) << "destroyed body is not grounded";
+    EXPECT_TRUE(world.get_contacts(body).empty());
 
     nori::physics2d::scene wall_world;
     ASSERT_TRUE(wall_world.set_gravity({})) << "zero gravity is accepted";
@@ -238,7 +239,7 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
     {
         wall_world.step(1.0f / 60.0f);
     }
-    EXPECT_TRUE(has_contact_normal(wall_world, moving, {-1.0f, 0.0f}));
+    EXPECT_TRUE(std::ranges::any_of(wall_world.get_contacts(moving), [](const auto& point) { return point.normal.x < -0.5f; }));
     EXPECT_FALSE(has_contact_normal(wall_world, moving, {0.0f, 1.0f}));
     nori::physics2d::scene ceiling_world;
     ASSERT_TRUE(ceiling_world.set_gravity({})) << "zero gravity is accepted for ceiling test";
@@ -250,7 +251,7 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
     {
         ceiling_world.step(1.0f / 60.0f);
     }
-    EXPECT_TRUE(has_contact_normal(ceiling_world, rising, {0.0f, -1.0f}));
+    EXPECT_TRUE(std::ranges::any_of(ceiling_world.get_contacts(rising), [](const auto& point) { return point.normal.y < -0.5f; }));
     EXPECT_FALSE(has_contact_normal(ceiling_world, rising, {0.0f, 1.0f}));
     ASSERT_LT(ceiling_world.get_transform(rising).value().position.y, -0.95f) << "ceiling contact is not ground";
 }

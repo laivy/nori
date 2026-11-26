@@ -45,7 +45,7 @@ const core::transform& scene_component::relative_transform() const
 
 core::transform scene_component::world_transform() const
 {
-    return parent_ ? compose_transform(parent_->world_transform(), relative_) : relative_;
+    return parent_ ? core::compose_transform(parent_->world_transform(), relative_) : relative_;
 }
 
 const scene_component* scene_component::parent() const
@@ -83,7 +83,7 @@ bool scene_component::attach_to_component(scene_component& parent, attachment_ru
     {
         return true;
     }
-    const auto relative_world{relative_to(world_transform(), parent.world_transform())};
+    const auto relative_world{core::relative_to(world_transform(), parent.world_transform())};
     if (!set_relative_transform({select_transform(rules.position, relative_.position, relative_world.position, core::transform::identity.position), select_transform(rules.rotation, relative_.rotation, relative_world.rotation, core::transform::identity.rotation), select_transform(rules.scale, relative_.scale, relative_world.scale, core::transform::identity.scale)}))
     {
         return false;

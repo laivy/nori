@@ -128,7 +128,7 @@ void physics_body_component::on_post_physics_update(float)
             auto pose{root.relative_transform()};
             pose.position.x = body_transform->position.x;
             pose.position.y = body_transform->position.y;
-            pose.rotation = axis_rotation({0.0f, 0.0f, 1.0f}, body_transform->angle_radians);
+            pose.rotation = core::axis_rotation({0.0f, 0.0f, 1.0f}, body_transform->angle_radians);
             root.set_relative_transform(pose);
             if (config_.type == physics2d::body_type::static_body)
             {

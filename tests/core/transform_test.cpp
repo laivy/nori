@@ -8,7 +8,7 @@ TEST(transform_test, identity)
 {
     const auto matrix{nori::core::transform_matrix(nori::core::transform::identity)};
     const auto composed{nori::core::compose_transform(nori::core::transform::identity, nori::core::transform::identity)};
-    static_cast<void>(matrix);
+    EXPECT_EQ(matrix, nori::core::mat4::identity());
     EXPECT_FLOAT_EQ(composed.position.x, 0.0f);
     EXPECT_FLOAT_EQ(composed.rotation.w, 1.0f);
     EXPECT_FLOAT_EQ(composed.scale.x, 1.0f);

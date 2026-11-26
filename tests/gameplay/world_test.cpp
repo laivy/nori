@@ -98,6 +98,8 @@ TEST(world_test, trigger_subscription_handles)
     nori::gameplay::world second;
     const auto original{first.subscribe_trigger_changed([](const nori::gameplay::trigger_changed&) {})};
     const auto foreign{second.subscribe_trigger_changed([](const nori::gameplay::trigger_changed&) {})};
+    const auto object{first.create_object<nori::gameplay::object>()};
+    EXPECT_EQ(object.world_id, original.world_id);
     EXPECT_FALSE(first.unsubscribe(foreign));
     EXPECT_TRUE(first.unsubscribe(original));
     EXPECT_FALSE(first.unsubscribe(original));
