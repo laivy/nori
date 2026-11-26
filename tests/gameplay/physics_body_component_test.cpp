@@ -87,7 +87,7 @@ TEST(physics_body_component_test, static_body_sync)
     next_pose.rotation = nori::core::axis_rotation({0.0f, 0.0f, 1.0f}, 0.5f);
     ASSERT_TRUE((object.root_component().set_relative_transform(next_pose))) << "static root transform was rejected";
     active.fixed_update(fixed_step);
-    const auto current{active.physics_scene().transform(body->body_handle())};
+    const auto current{active.physics_scene().transform_of(body->body_handle())};
     ASSERT_TRUE((current)) << "static root transform was not applied to physics";
     ASSERT_EQ((current->position.x), (4.0f)) << "static root transform was not applied to physics";
     EXPECT_NEAR(current->angle_radians, 0.5f, 0.001f);
@@ -95,7 +95,7 @@ TEST(physics_body_component_test, static_body_sync)
     active.fixed_update(fixed_step);
     active.fixed_update(fixed_step);
     ASSERT_EQ((object.root_component().relative_transform().position.x), (6.0f)) << "static teleport was reverted by the root transform";
-    ASSERT_EQ((active.physics_scene().transform(body->body_handle())->position.x), (6.0f)) << "static teleport was reverted by the root transform";
+    ASSERT_EQ((active.physics_scene().transform_of(body->body_handle())->position.x), (6.0f)) << "static teleport was reverted by the root transform";
 }
 TEST(physics_body_component_test, contact_query)
 {
