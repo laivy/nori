@@ -24,4 +24,4 @@ struct box_collider_desc
     collision_filter filter;
     bool is_sensor;
 };
-} // namespace nori::physics2d
+}

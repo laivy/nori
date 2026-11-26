@@ -18,4 +18,4 @@ struct body_handle
     std::uint64_t scene_id;
     core::basic_handle<detail::body_tag> slot;
 };
-} // namespace nori::physics2d
+}

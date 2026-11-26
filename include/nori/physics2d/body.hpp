@@ -35,7 +35,6 @@ struct body_desc
     body_velocity velocity;
     bool lock_rotation;
     std::optional<float> mass_override;
-    // Referenced only for the duration of create_body().
     std::span<const box_collider_desc> colliders;
 };
-} // namespace nori::physics2d
+}

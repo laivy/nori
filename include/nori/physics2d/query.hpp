@@ -12,4 +12,4 @@ struct ray_hit
     core::vec2 normal;
     float fraction;
 };
-} // namespace nori::physics2d
+}

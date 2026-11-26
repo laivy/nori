@@ -37,7 +37,7 @@ bool is_nonnegative(float value)
 {
     return std::isfinite(value) && value >= 0.0f;
 }
-} // namespace
+}
 
 namespace nori::physics2d
 {
@@ -492,4 +492,4 @@ bool scene::apply_linear_impulse_to_center(body_handle body, core::vec2 impulse)
     b2Body_ApplyLinearImpulseToCenter(id, {impulse.x, impulse.y}, true);
     return true;
 }
-} // namespace nori::physics2d
+}

@@ -348,4 +348,4 @@ TEST(physics2d_scene_test, handle_lifetime)
     ASSERT_FALSE(first.apply_force_to_center({}, {})) << "default handle is invalid";
     ASSERT_EQ(first.create_body({nori::physics2d::body_type::dynamic_body, {{}, std::numeric_limits<float>::infinity()}, {}}), nori::physics2d::body_handle{}) << "nonfinite transform is rejected";
 }
-} // namespace
+}

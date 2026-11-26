@@ -13,4 +13,4 @@ struct collider_handle
     body_handle body;
     std::size_t index;
 };
-} // namespace nori::physics2d
+}
