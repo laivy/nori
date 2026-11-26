@@ -169,6 +169,11 @@ if (TARGET nori::physics)
         SOURCES physics/physics2d/scene_test.cpp)
 endif ()
 
+if (TARGET nori::gameplay)
+    nori_add_test(nori_gameplay_tests nori::gameplay unit
+        SOURCES gameplay/framework_test.cpp)
+endif ()
+
 if (TARGET nori_cli_core)
     nori_add_test(nori_cli_tests nori_cli_core unit
         PROPERTIES TIMEOUT 600
