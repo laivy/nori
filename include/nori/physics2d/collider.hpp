@@ -52,10 +52,10 @@ struct contact_point
     float total_normal_impulse;
 };
 
-enum class contact_kind
+enum class contact_type
 {
     contact,
-    trigger
+    sensor
 };
 enum class contact_phase
 {
@@ -67,7 +67,7 @@ struct contact_event
 {
     collider_handle first;
     collider_handle second;
-    contact_kind kind;
+    contact_type type;
     contact_phase phase;
 };
 

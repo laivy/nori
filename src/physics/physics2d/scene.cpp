@@ -47,29 +47,29 @@ public:
         std::vector<std::uint64_t> shapes;
     };
 
-    using contact_key = std::tuple<contact_kind, std::uint64_t, std::uint64_t>;
+    using contact_key = std::tuple<contact_type, std::uint64_t, std::uint64_t>;
 
-    static contact_key make_contact_key(contact_kind kind, b2ShapeId first, b2ShapeId second)
+    static contact_key make_contact_key(contact_type type, b2ShapeId first, b2ShapeId second)
     {
         auto first_id{b2StoreShapeId(first)};
         auto second_id{b2StoreShapeId(second)};
-        if (kind == contact_kind::contact && first_id > second_id)
+        if (type == contact_type::contact && first_id > second_id)
         {
             std::swap(first_id, second_id);
         }
-        return {kind, first_id, second_id};
+        return {type, first_id, second_id};
     }
 
     void begin_contact(const contact_key& key)
     {
-        const auto& [kind, first_id, second_id]{key};
+        const auto& [type, first_id, second_id]{key};
         const auto first{colliders.find(first_id)};
         const auto second{colliders.find(second_id)};
         if (first == colliders.end() || second == colliders.end())
         {
             return;
         }
-        const contact_event event{first->second, second->second, kind, contact_phase::begin};
+        const contact_event event{first->second, second->second, type, contact_phase::begin};
         if (active_contacts.emplace(key, event).second)
         {
             events.push_back(event);
@@ -107,22 +107,22 @@ public:
         for (int i{}; i < contacts.endCount; ++i)
         {
             const auto& event{contacts.endEvents[i]};
-            collect_end(make_contact_key(contact_kind::contact, event.shapeIdA, event.shapeIdB));
+            collect_end(make_contact_key(contact_type::contact, event.shapeIdA, event.shapeIdB));
         }
         for (int i{}; i < sensors.endCount; ++i)
         {
             const auto& event{sensors.endEvents[i]};
-            collect_end(make_contact_key(contact_kind::trigger, event.sensorShapeId, event.visitorShapeId));
+            collect_end(make_contact_key(contact_type::sensor, event.sensorShapeId, event.visitorShapeId));
         }
         for (int i{}; i < contacts.beginCount; ++i)
         {
             const auto& event{contacts.beginEvents[i]};
-            begin_contact(make_contact_key(contact_kind::contact, event.shapeIdA, event.shapeIdB));
+            begin_contact(make_contact_key(contact_type::contact, event.shapeIdA, event.shapeIdB));
         }
         for (int i{}; i < sensors.beginCount; ++i)
         {
             const auto& event{sensors.beginEvents[i]};
-            begin_contact(make_contact_key(contact_kind::trigger, event.sensorShapeId, event.visitorShapeId));
+            begin_contact(make_contact_key(contact_type::sensor, event.sensorShapeId, event.visitorShapeId));
         }
         for (const auto& key : unmatched_ends)
         {

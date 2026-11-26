@@ -84,7 +84,7 @@ TEST(physics2d_scene_test, box_collision)
         world.step(1.0f / 60.0f);
         for (const auto& event : world.contact_events())
         {
-            begins += event.kind == nori::physics2d::contact_kind::contact && event.phase == nori::physics2d::contact_phase::begin;
+            begins += event.type == nori::physics2d::contact_type::contact && event.phase == nori::physics2d::contact_phase::begin;
         }
     }
     const nori::physics2d::body_transform pose{world.transform_of(falling).value()};
@@ -129,7 +129,7 @@ TEST(physics2d_scene_test, collider_configuration)
     ASSERT_FALSE(world.cast_ray({12.0f, 2.0f}, {0.0f, -4.0f})) << "failed body creation left a collider in the scene";
 }
 
-TEST(physics2d_scene_test, triggers)
+TEST(physics2d_scene_test, sensor_events)
 {
     nori::physics2d::scene world;
     ASSERT_TRUE(world.set_gravity({})) << "could not disable gravity";
@@ -139,8 +139,8 @@ TEST(physics2d_scene_test, triggers)
     };
     const auto sensor{world.create_body({.type = nori::physics2d::body_type::static_body, .colliders = boxes})};
     const auto visitor{world.create_body({.type = nori::physics2d::body_type::dynamic_body})};
-    ASSERT_TRUE(world.contains(sensor)) << "trigger setup failed";
-    ASSERT_TRUE(world.add_box_collider(visitor, {{0.75f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "trigger setup failed";
+    ASSERT_TRUE(world.contains(sensor)) << "sensor event setup failed";
+    ASSERT_TRUE(world.add_box_collider(visitor, {{0.75f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "sensor event setup failed";
     constexpr float step{1.0f / 60.0f};
     world.step(step);
     const auto begins{world.contact_events()};
@@ -148,19 +148,20 @@ TEST(physics2d_scene_test, triggers)
     ASSERT_NE(begins[0].first.index, begins[1].first.index) << "two colliders did not begin independently";
     for (const auto& event : begins)
     {
-        ASSERT_EQ(event.kind, nori::physics2d::contact_kind::trigger) << "invalid trigger begin data";
-        ASSERT_EQ(event.phase, nori::physics2d::contact_phase::begin) << "invalid trigger begin data";
-        ASSERT_EQ(event.first.body, sensor) << "invalid trigger begin data";
-        ASSERT_EQ(event.second.body, visitor) << "invalid trigger begin data";
+        ASSERT_EQ(event.type, nori::physics2d::contact_type::sensor) << "invalid sensor event begin data";
+        ASSERT_EQ(event.phase, nori::physics2d::contact_phase::begin) << "invalid sensor event begin data";
+        ASSERT_EQ(event.first.body, sensor) << "invalid sensor event begin data";
+        ASSERT_EQ(event.second.body, visitor) << "invalid sensor event begin data";
     }
     EXPECT_TRUE(world.contacts_of(visitor).empty()) << "sensor affected physical motion";
     EXPECT_NEAR(world.transform_of(visitor).value().position.x, 0.0f, 0.001f) << "sensor affected physical motion";
     ASSERT_TRUE(world.set_transform(visitor, {{0.8f, 0.0f}, 0.0f})) << "could not leave one sensor";
     world.step(step);
     const auto first_end{world.contact_events()};
-    ASSERT_EQ(first_end.size(), 1) << "leaving one collider ended the wrong trigger";
-    ASSERT_EQ(first_end.front().phase, nori::physics2d::contact_phase::end) << "leaving one collider ended the wrong trigger";
-    ASSERT_EQ(first_end.front().first.index, 0) << "leaving one collider ended the wrong trigger";
+    ASSERT_EQ(first_end.size(), 1) << "leaving one collider ended the wrong sensor event";
+    ASSERT_EQ(first_end.front().type, nori::physics2d::contact_type::sensor);
+    ASSERT_EQ(first_end.front().phase, nori::physics2d::contact_phase::end) << "leaving one collider ended the wrong sensor event";
+    ASSERT_EQ(first_end.front().first.index, 0) << "leaving one collider ended the wrong sensor event";
 
     ASSERT_TRUE(world.destroy_body(visitor)) << "could not delete the visitor";
     world.step(0.0f);
@@ -168,10 +169,11 @@ TEST(physics2d_scene_test, triggers)
     ASSERT_EQ(world.contact_events().front().first.index, 0) << "invalid step replaced the event batch";
     world.step(step);
     const auto removal_end{world.contact_events()};
-    ASSERT_EQ(removal_end.size(), 1) << "destroying the visitor did not end its remaining trigger once";
-    ASSERT_EQ(removal_end.front().phase, nori::physics2d::contact_phase::end) << "destroying the visitor did not end its remaining trigger once";
-    ASSERT_EQ(removal_end.front().first.index, 1) << "destroying the visitor did not end its remaining trigger once";
-    ASSERT_EQ(removal_end.front().second.body, visitor) << "destroying the visitor did not end its remaining trigger once";
+    ASSERT_EQ(removal_end.size(), 1) << "destroying the visitor did not end its remaining sensor event once";
+    ASSERT_EQ(removal_end.front().type, nori::physics2d::contact_type::sensor);
+    ASSERT_EQ(removal_end.front().phase, nori::physics2d::contact_phase::end) << "destroying the visitor did not end its remaining sensor event once";
+    ASSERT_EQ(removal_end.front().first.index, 1) << "destroying the visitor did not end its remaining sensor event once";
+    ASSERT_EQ(removal_end.front().second.body, visitor) << "destroying the visitor did not end its remaining sensor event once";
     world.step(step);
     ASSERT_TRUE(world.contact_events().empty()) << "removed visitor continued to produce events";
 }

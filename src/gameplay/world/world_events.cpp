@@ -50,7 +50,7 @@ void world::collect_trigger_events()
 {
     for (const auto& event : physics_.contact_events())
     {
-        if (event.kind != physics2d::contact_kind::trigger)
+        if (event.type != physics2d::contact_type::sensor)
         {
             continue;
         }
