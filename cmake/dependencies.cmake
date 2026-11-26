@@ -23,6 +23,15 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
+    box2d
+    URL https://github.com/erincatto/box2d/archive/178495ba35695aefe9c321e569d2277f06db3b90.tar.gz
+    URL_HASH SHA256=f226d0684c46d06ddbc947c2ab33758cb220eca6624549778250e94f845097c9
+    DOWNLOAD_NO_PROGRESS TRUE
+    EXCLUDE_FROM_ALL
+    SYSTEM
+)
+
+FetchContent_Declare(
     DirectX-Headers
     URL https://github.com/microsoft/DirectX-Headers/archive/9e393d6d8a3b30dcc6f2806ef604ec16a27b0d7e.tar.gz
     URL_HASH SHA256=5b9ab816a4eebea0261e59b4f1e2885f901d7df629c41c7d6b5f8770c52283b1
@@ -225,6 +234,22 @@ if (nori_build_graphics)
                 imgui-LICENSE.txt
             )
         endif ()
+    endif ()
+endif ()
+
+if (nori_build_physics)
+    block(SCOPE_FOR POLICIES VARIABLES)
+        set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+        set(BUILD_SHARED_LIBS OFF)
+        set(BOX2D_DOUBLE_PRECISION OFF)
+        FetchContent_MakeAvailable(box2d)
+    endblock()
+    if (NORI_INSTALL)
+        FetchContent_GetProperties(box2d)
+        nori_register_package_license(
+            "${box2d_SOURCE_DIR}/LICENSE"
+            box2d-LICENSE.txt
+        )
     endif ()
 endif ()
 

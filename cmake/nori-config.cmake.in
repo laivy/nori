@@ -44,7 +44,14 @@ if (@nori_build_graphics@)
     nori_import_static_dependency(nori::directx_guids DirectX-Guids.lib)
 endif ()
 
-set(nori_supported_components core io resource asset graphics imgui)
+if (@nori_build_physics@)
+    nori_import_static_dependency(nori::physics_box2d "@CMAKE_STATIC_LIBRARY_PREFIX@nori-box2d@CMAKE_STATIC_LIBRARY_SUFFIX@")
+    if (UNIX AND NOT APPLE)
+        set_property(TARGET nori::physics_box2d APPEND PROPERTY INTERFACE_LINK_LIBRARIES m)
+    endif ()
+endif ()
+
+set(nori_supported_components core io resource asset graphics physics imgui)
 foreach (nori_component IN LISTS nori_supported_components)
     if (nori_component STREQUAL imgui)
         set(nori_component_target nori::graphics::imgui)
@@ -65,10 +72,20 @@ foreach (nori_component IN LISTS nori_FIND_COMPONENTS)
     endif ()
 endforeach ()
 
-foreach (nori_target IN ITEMS
-    nori::core nori::io nori::resource nori::asset nori::graphics
-    nori::imgui nori::graphics::imgui nori::nori nori::asset_directxtex nori::directx_guids
+list(TRANSFORM nori_installed_modules
+    PREPEND "nori::"
+    OUTPUT_VARIABLE nori_config_targets
 )
+
+list(APPEND nori_config_targets
+    nori::imgui
+    nori::graphics::imgui
+    nori::asset_directxtex
+    nori::directx_guids
+    nori::physics_box2d
+)
+
+foreach (nori_target IN LISTS nori_config_targets)
     if (TARGET ${nori_target})
         set_target_properties(${nori_target} PROPERTIES
             MAP_IMPORTED_CONFIG_DEBUG Debug
@@ -83,6 +100,7 @@ unset(nori_component)
 unset(nori_component_target)
 unset(nori_supported_components)
 unset(nori_target)
+unset(nori_config_targets)
 unset(nori_installed_modules)
 unset(nori_first_module)
 unset(nori_installed_configurations)

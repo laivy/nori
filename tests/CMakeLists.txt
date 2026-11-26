@@ -164,6 +164,11 @@ if (TARGET nori::graphics::imgui)
     target_link_libraries(nori_imgui_backend_tests PRIVATE nori_graphics_test_support)
 endif ()
 
+if (TARGET nori::physics)
+    nori_add_test(nori_physics_tests nori::physics unit
+        SOURCES physics/physics2d/scene_test.cpp)
+endif ()
+
 if (TARGET nori_cli_core)
     nori_add_test(nori_cli_tests nori_cli_core unit
         PROPERTIES TIMEOUT 600

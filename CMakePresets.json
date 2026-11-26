@@ -38,6 +38,7 @@
         "NORI_BUILD_RESOURCE": "ON",
         "NORI_BUILD_ASSET": "OFF",
         "NORI_BUILD_GRAPHICS": "OFF",
+        "NORI_BUILD_PHYSICS": "ON",
         "NORI_ENABLE_IMGUI": "OFF",
         "NORI_BUILD_CLI": "ON",
         "NORI_BUILD_NORITOR": "OFF"
@@ -61,6 +62,7 @@
         "NORI_BUILD_RESOURCE": "ON",
         "NORI_BUILD_ASSET": "ON",
         "NORI_BUILD_GRAPHICS": "ON",
+        "NORI_BUILD_PHYSICS": "ON",
         "NORI_ENABLE_IMGUI": "ON",
         "NORI_BUILD_CLI": "ON",
         "NORI_BUILD_NORITOR": "ON"
