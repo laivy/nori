@@ -79,7 +79,7 @@ TEST(physics_body_component_test, static_body_sync)
     nori::gameplay::world active;
     auto initial_pose{nori::core::transform::identity};
     initial_pose.position = {2.0f, 1.0f, 3.0f};
-    const auto handle{active.create_object<test_physics_object>(initial_pose, nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::static_body, .colliders = {{{0.5f, 0.5f}, {}, 1.0f, 0.6f, 0.0f, false, nori::physics2d::default_collision_filter}}})};
+    const auto handle{active.create_object<test_physics_object>(initial_pose, nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::static_body, .colliders = {{{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}}})};
     auto& object{*active.find_object(handle)};
     const auto body{object.find_component<nori::gameplay::physics_body_component>()};
     auto next_pose{initial_pose};
@@ -102,11 +102,11 @@ TEST(physics_body_component_test, contact_query)
     nori::gameplay::world active;
     ASSERT_TRUE(active.physics_scene().set_gravity({0.0f, -10.0f}));
     const auto ground{active.create_object<test_physics_object>(nori::core::transform::identity,
-        nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::static_body, .colliders = {{{5.0f, 0.5f}, {}, 1.0f, 0.6f, 0.0f, false, nori::physics2d::default_collision_filter}}})};
+        nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::static_body, .colliders = {{{5.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}}})};
     auto pose{nori::core::transform::identity};
     pose.position.y = 2.0f;
     const auto falling{active.create_object<test_physics_object>(pose,
-        nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::dynamic_body, .lock_rotation = true, .colliders = {{{0.5f, 0.5f}, {}, 1.0f, 0.6f, 0.0f, false, nori::physics2d::default_collision_filter}}})};
+        nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::dynamic_body, .lock_rotation = true, .colliders = {{{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}}})};
     auto* body{active.find_object(falling)->find_component<nori::gameplay::physics_body_component>()};
     ASSERT_NE(body, nullptr);
     EXPECT_TRUE(body->contacts().empty());

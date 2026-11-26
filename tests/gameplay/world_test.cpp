@@ -32,10 +32,10 @@ TEST(world_test, gameplay_trigger_events)
     nori::gameplay::world active;
     active.physics_scene().set_gravity({});
     const auto sensor{active.create_object<test_physics_object>(nori::core::transform::identity,
-        nori::gameplay::physics_body_config{nori::physics2d::body_type::static_body, {}, false, {}, {{{0.5f, 0.5f}, {}, 1.0f, 0.6f, 0.0f, true, nori::physics2d::default_collision_filter}, {{0.25f, 0.25f}, {}, 1.0f, 0.6f, 0.0f, true, nori::physics2d::default_collision_filter}}})};
+        nori::gameplay::physics_body_config{nori::physics2d::body_type::static_body, {}, false, {}, {{{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, true}, {{0.25f, 0.25f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, true}}})};
     const auto visitor{active.create_object<test_physics_object>(nori::core::transform::identity,
-        nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::dynamic_body, .colliders = {{{0.25f, 0.25f}, {}, 1.0f, 0.6f, 0.0f, false, nori::physics2d::default_collision_filter}}})};
-    const nori::physics2d::box_collider_desc raw_shape[]{{{0.5f, 0.5f}, {}, 1.0f, 0.6f, 0.0f, true, nori::physics2d::default_collision_filter}};
+        nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::dynamic_body, .colliders = {{{0.25f, 0.25f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}}})};
+    const nori::physics2d::box_collider_desc raw_shape[]{{{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, true}};
     const auto raw_sensor{active.physics_scene().create_body({nori::physics2d::body_type::static_body, {}, {}, false, {}, raw_shape})};
     ASSERT_TRUE((active.physics_scene().contains(raw_sensor))) << "could not create a physics-only sensor";
 

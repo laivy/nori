@@ -308,18 +308,18 @@ bool scene::contains(body_handle body) const noexcept
 
 bool scene::add_box_collider(body_handle body, const box_collider_desc& desc)
 {
-    if (!contains(body) || !is_finite(desc.half_extent) || desc.half_extent.x <= 0.0f || desc.half_extent.y <= 0.0f || !is_finite(desc.center) || !is_nonnegative(desc.density) || !is_nonnegative(desc.friction) || !is_nonnegative(desc.restitution))
+    if (!contains(body) || !is_finite(desc.half_extent) || desc.half_extent.x <= 0.0f || desc.half_extent.y <= 0.0f || !is_finite(desc.center) || !is_nonnegative(desc.friction) || !is_nonnegative(desc.restitution) || !is_nonnegative(desc.density))
     {
         return false;
     }
 
     b2ShapeDef settings{b2DefaultShapeDef()};
-    settings.density = desc.is_sensor ? 0.0f : desc.density;
     settings.material.friction = desc.friction;
     settings.material.restitution = desc.restitution;
-    settings.isSensor = desc.is_sensor;
+    settings.density = desc.is_sensor ? 0.0f : desc.density;
     settings.filter.categoryBits = desc.filter.category_bits;
     settings.filter.maskBits = desc.filter.mask_bits;
+    settings.isSensor = desc.is_sensor;
     settings.enableContactEvents = !desc.is_sensor;
     settings.enableSensorEvents = true;
     const b2Polygon box{b2MakeOffsetBox(desc.half_extent.x, desc.half_extent.y, {desc.center.x, desc.center.y}, b2Rot_identity)};

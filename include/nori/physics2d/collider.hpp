@@ -20,11 +20,11 @@ struct box_collider_desc
 {
     core::vec2 half_extent;
     core::vec2 center;
-    float density;
     float friction;
     float restitution;
-    bool is_sensor;
+    float density;
     collision_filter filter;
+    bool is_sensor;
 };
 
 struct collider_handle
