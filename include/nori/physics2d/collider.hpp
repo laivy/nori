@@ -28,15 +28,15 @@ inline constexpr box_collider_settings default_box_collider_settings{1.0f, 0.6f,
 struct box_collider_desc
 {
     body_handle body;
-    nori::core::vec2 half_extent;
-    nori::core::vec2 center;
+    core::vec2 half_extent;
+    core::vec2 center;
     std::optional<box_collider_settings> settings;
 };
 
 struct box_collider_config
 {
-    nori::core::vec2 half_extent;
-    nori::core::vec2 center;
+    core::vec2 half_extent;
+    core::vec2 center;
     std::optional<box_collider_settings> settings;
 };
 
@@ -68,8 +68,8 @@ struct contact_event
 struct ray_hit
 {
     collider_ref collider;
-    nori::core::vec2 point;
-    nori::core::vec2 normal;
+    core::vec2 point;
+    core::vec2 normal;
     float fraction;
 };
 } // namespace nori::physics2d

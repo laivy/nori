@@ -169,7 +169,7 @@ public:
     }
 
     std::uint64_t id;
-    nori::core::slot_map<nori::core::basic_handle<detail::body_tag>, body_entry> bodies;
+    core::slot_map<core::basic_handle<detail::body_tag>, body_entry> bodies;
     b2WorldId world;
     std::unordered_map<std::uint64_t, collider_ref> colliders;
     std::map<contact_key, contact_event> active_contacts;
@@ -204,7 +204,7 @@ void scene::step(float delta_seconds)
     }
 }
 
-bool scene::set_gravity(nori::core::vec2 gravity)
+bool scene::set_gravity(core::vec2 gravity)
 {
     if (B2_IS_NULL(impl_->world) || !is_finite(gravity))
     {
@@ -367,7 +367,7 @@ bool scene::is_grounded(body_handle body, float min_normal_y) const
     return false;
 }
 
-std::optional<ray_hit> scene::cast_ray(nori::core::vec2 origin, nori::core::vec2 translation, collision_filter filter) const
+std::optional<ray_hit> scene::cast_ray(core::vec2 origin, core::vec2 translation, collision_filter filter) const
 {
     if (B2_IS_NULL(impl_->world) || !is_finite(origin) || !is_finite(translation) || (translation.x == 0.0f && translation.y == 0.0f))
     {
@@ -439,7 +439,7 @@ bool scene::set_velocity(body_handle body, body_velocity velocity)
     return true;
 }
 
-bool scene::apply_force(body_handle body, nori::core::vec2 force)
+bool scene::apply_force(body_handle body, core::vec2 force)
 {
     if (!contains(body) || !is_finite(force))
     {
@@ -456,7 +456,7 @@ bool scene::apply_force(body_handle body, nori::core::vec2 force)
     return true;
 }
 
-bool scene::apply_linear_impulse(body_handle body, nori::core::vec2 impulse)
+bool scene::apply_linear_impulse(body_handle body, core::vec2 impulse)
 {
     if (!contains(body) || !is_finite(impulse))
     {

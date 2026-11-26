@@ -21,7 +21,7 @@ public:
     scene& operator=(scene&&) = delete;
 
     void step(float delta_seconds);
-    bool set_gravity(nori::core::vec2 gravity);
+    bool set_gravity(core::vec2 gravity);
 
     [[nodiscard]] body_handle create_body(const body_desc& desc, std::span<const box_collider_config> colliders = {});
     bool destroy_body(body_handle body);
@@ -29,7 +29,7 @@ public:
 
     bool add_box_collider(const box_collider_desc& desc);
     [[nodiscard]] bool is_grounded(body_handle body, float min_normal_y = 0.5f) const;
-    [[nodiscard]] std::optional<ray_hit> cast_ray(nori::core::vec2 origin, nori::core::vec2 translation, collision_filter filter = default_collision_filter) const;
+    [[nodiscard]] std::optional<ray_hit> cast_ray(core::vec2 origin, core::vec2 translation, collision_filter filter = default_collision_filter) const;
     [[nodiscard]] std::span<const contact_event> contact_events() const;
 
     [[nodiscard]] std::optional<body_transform> get_transform(body_handle body) const;
@@ -37,8 +37,8 @@ public:
     [[nodiscard]] std::optional<body_velocity> get_velocity(body_handle body) const;
     bool set_velocity(body_handle body, body_velocity velocity);
 
-    bool apply_force(body_handle body, nori::core::vec2 force);
-    bool apply_linear_impulse(body_handle body, nori::core::vec2 impulse);
+    bool apply_force(body_handle body, core::vec2 force);
+    bool apply_linear_impulse(body_handle body, core::vec2 impulse);
 
 private:
     class impl;

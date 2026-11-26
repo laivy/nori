@@ -18,7 +18,7 @@ struct body_handle
     [[nodiscard]] bool operator==(const body_handle&) const noexcept = default;
 
     std::uint64_t scene_id;
-    nori::core::basic_handle<detail::body_tag> slot;
+    core::basic_handle<detail::body_tag> slot;
 };
 
 enum class body_type
@@ -30,13 +30,13 @@ enum class body_type
 
 struct body_transform
 {
-    nori::core::vec2 position;
+    core::vec2 position;
     float angle_radians;
 };
 
 struct body_velocity
 {
-    nori::core::vec2 linear;
+    core::vec2 linear;
     float angular_radians_per_second;
 };
 
