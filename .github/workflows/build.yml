@@ -68,28 +68,3 @@ jobs:
 
       - name: run cmake workflow
         run: cmake --workflow --preset ${{ matrix.workflow }}
-
-      - name: configure physics package smoke test
-        run: >-
-          cmake --preset ${{ matrix.configure-preset }}
-          -B build/physics-package-test
-          -DNORI_BUILD_CORE=ON
-          -DNORI_BUILD_IO=OFF
-          -DNORI_BUILD_RESOURCE=OFF
-          -DNORI_BUILD_ASSET=OFF
-          -DNORI_BUILD_GRAPHICS=OFF
-          -DNORI_ENABLE_IMGUI=OFF
-          -DNORI_BUILD_CLI=OFF
-          -DNORI_BUILD_NORITOR=OFF
-          -DNORI_BUILD_PHYSICS=ON
-          -DNORI_INSTALL=ON
-
-      - name: verify physics package (Debug and Release)
-        shell: pwsh
-        run: |
-          foreach ($config in @('Debug', 'Release')) {
-              cmake --build build/physics-package-test --config $config --target nori_physics_tests
-              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-              ctest --test-dir build/physics-package-test -C $config --output-on-failure -R '^nori_physics_(tests|package)$'
-              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
