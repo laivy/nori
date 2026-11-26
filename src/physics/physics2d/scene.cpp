@@ -17,7 +17,11 @@
 #include <nori/core/slot_map.hpp>
 #include <nori/core/vector.hpp>
 #include <nori/physics2d/body.hpp>
+#include <nori/physics2d/body_handle.hpp>
 #include <nori/physics2d/collider.hpp>
+#include <nori/physics2d/collider_handle.hpp>
+#include <nori/physics2d/contact.hpp>
+#include <nori/physics2d/query.hpp>
 #include <nori/physics2d/scene.hpp>
 
 namespace
@@ -278,7 +282,7 @@ body_handle scene::create_body(const body_desc& desc)
     const body_handle body{impl_->id, slot};
     for (const auto& collider : desc.colliders)
     {
-        if (!add_box_collider(body, collider))
+        if (!contains(add_box_collider(body, collider)))
         {
             destroy_body(body);
             return {};
@@ -306,11 +310,11 @@ bool scene::contains(body_handle body) const noexcept
     return body.scene_id == impl_->id && impl_->bodies.contains(body.slot);
 }
 
-bool scene::add_box_collider(body_handle body, const box_collider_desc& desc)
+collider_handle scene::add_box_collider(body_handle body, const box_collider_desc& desc)
 {
     if (!contains(body) || !is_finite(desc.half_extent) || desc.half_extent.x <= 0.0f || desc.half_extent.y <= 0.0f || !is_finite(desc.center) || !is_nonnegative(desc.friction) || !is_nonnegative(desc.restitution) || !is_nonnegative(desc.density))
     {
-        return false;
+        return {};
     }
 
     b2ShapeDef settings{b2DefaultShapeDef()};
@@ -327,13 +331,19 @@ bool scene::add_box_collider(body_handle body, const box_collider_desc& desc)
     const b2ShapeId shape{b2CreatePolygonShape(entry.id, &settings, &box)};
     if (B2_IS_NULL(shape))
     {
-        return false;
+        return {};
     }
     const auto key{b2StoreShapeId(shape)};
-    impl_->colliders.emplace(key, collider_handle{body, entry.shapes.size()});
+    const collider_handle collider{body, entry.shapes.size()};
+    impl_->colliders.emplace(key, collider);
     entry.shapes.push_back(key);
     impl::apply_dynamic_mass(entry);
-    return true;
+    return collider;
+}
+
+bool scene::contains(collider_handle collider) const noexcept
+{
+    return contains(collider.body) && collider.index < impl_->bodies[collider.body.slot].shapes.size();
 }
 
 std::vector<contact_point> scene::contacts_of(body_handle body) const
@@ -374,7 +384,7 @@ std::vector<contact_point> scene::contacts_of(body_handle body) const
     return result;
 }
 
-std::optional<ray_hit> scene::cast_ray(core::vec2 origin, core::vec2 translation, collision_filter filter) const
+std::optional<ray_hit> scene::cast_ray_closest(core::vec2 origin, core::vec2 translation, collision_filter filter) const
 {
     if (B2_IS_NULL(impl_->world) || !is_finite(origin) || !is_finite(translation) || (translation.x == 0.0f && translation.y == 0.0f))
     {
@@ -449,7 +459,7 @@ bool scene::set_velocity(body_handle body, body_velocity velocity)
     return true;
 }
 
-bool scene::apply_force(body_handle body, core::vec2 force)
+bool scene::apply_force_to_center(body_handle body, core::vec2 force)
 {
     if (!contains(body) || !is_finite(force))
     {
@@ -466,7 +476,7 @@ bool scene::apply_force(body_handle body, core::vec2 force)
     return true;
 }
 
-bool scene::apply_linear_impulse(body_handle body, core::vec2 impulse)
+bool scene::apply_linear_impulse_to_center(body_handle body, core::vec2 impulse)
 {
     if (!contains(body) || !is_finite(impulse))
     {

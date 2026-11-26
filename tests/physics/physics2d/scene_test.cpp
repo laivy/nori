@@ -5,7 +5,11 @@
 
 #include <nori/core/vector.hpp>
 #include <nori/physics2d/body.hpp>
+#include <nori/physics2d/body_handle.hpp>
 #include <nori/physics2d/collider.hpp>
+#include <nori/physics2d/collider_handle.hpp>
+#include <nori/physics2d/contact.hpp>
+#include <nori/physics2d/query.hpp>
 #include <nori/physics2d/scene.hpp>
 
 namespace
@@ -32,11 +36,11 @@ TEST(physics2d_scene_test, body_motion)
 
     ASSERT_TRUE(world.set_transform(ground, {{2.0f, 1.0f}, 0.5f})) << "static body accepts a transform";
     ASSERT_FALSE(world.set_velocity(ground, {{6.0f, 0.0f}, 0.0f})) << "static body rejects velocity";
-    ASSERT_FALSE(world.apply_force(platform, {60.0f, 0.0f})) << "kinematic body rejects force";
-    ASSERT_FALSE(world.apply_linear_impulse(ground, {2.0f, 0.0f})) << "static body rejects impulse";
-    ASSERT_TRUE(world.apply_linear_impulse(falling, {2.0f, 0.0f})) << "dynamic body accepts impulse";
+    ASSERT_FALSE(world.apply_force_to_center(platform, {60.0f, 0.0f})) << "kinematic body rejects force";
+    ASSERT_FALSE(world.apply_linear_impulse_to_center(ground, {2.0f, 0.0f})) << "static body rejects impulse";
+    ASSERT_TRUE(world.apply_linear_impulse_to_center(falling, {2.0f, 0.0f})) << "dynamic body accepts impulse";
     EXPECT_NEAR(world.velocity_of(falling).value().linear.x, 2.0f, 0.001f) << "impulse changes velocity immediately";
-    ASSERT_TRUE(world.apply_force(falling, {60.0f, 0.0f})) << "dynamic body accepts force";
+    ASSERT_TRUE(world.apply_force_to_center(falling, {60.0f, 0.0f})) << "dynamic body accepts force";
 
     world.step(1.0f / 60.0f);
 
@@ -76,8 +80,8 @@ TEST(physics2d_scene_test, box_collision)
     nori::physics2d::scene world;
     const nori::physics2d::body_handle ground{world.create_body({nori::physics2d::body_type::static_body, {{}, 0.0f}, {}})};
     const nori::physics2d::body_handle falling{world.create_body({nori::physics2d::body_type::dynamic_body, {{0.0f, 4.0f}, 0.0f}, {}})};
-    ASSERT_TRUE(world.add_box_collider(ground, {{5.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "ground collider can be created";
-    ASSERT_TRUE(world.add_box_collider(falling, {{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "dynamic collider can be created";
+    ASSERT_TRUE(world.contains(world.add_box_collider(ground, {{5.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}))) << "ground collider can be created";
+    ASSERT_TRUE(world.contains(world.add_box_collider(falling, {{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}))) << "dynamic collider can be created";
     int begins{};
     for (int i{}; i < 180; ++i)
     {
@@ -99,34 +103,36 @@ TEST(physics2d_scene_test, collider_configuration)
     nori::physics2d::scene world;
     const auto with_override{world.create_body({.type = nori::physics2d::body_type::dynamic_body, .mass_override = 8.0f})};
     nori::physics2d::box_collider_desc collider{{0.5f, 0.5f}, {2.0f, 0.0f}, 0.6f, 0.0f, 2.0f, {2, 4}, false};
-    ASSERT_TRUE(world.add_box_collider(with_override, collider)) << "configured collider rejected";
-    ASSERT_TRUE(world.apply_linear_impulse(with_override, {8.0f, 0.0f})) << "adding a collider changed the explicit mass";
+    const auto created{world.add_box_collider(with_override, collider)};
+    ASSERT_TRUE(world.contains(created)) << "configured collider rejected";
+    ASSERT_TRUE(world.apply_linear_impulse_to_center(with_override, {8.0f, 0.0f})) << "adding a collider changed the explicit mass";
     EXPECT_NEAR(world.velocity_of(with_override).value().linear.x, 1.0f, 0.001f) << "adding a collider changed the explicit mass";
-    const auto hit{world.cast_ray({2.0f, 2.0f}, {0.0f, -4.0f}, {4, 2})};
+    const auto hit{world.cast_ray_closest({2.0f, 2.0f}, {0.0f, -4.0f}, {4, 2})};
     ASSERT_TRUE(hit) << "ray missed the offset collider";
+    EXPECT_EQ(hit->collider, created);
     ASSERT_EQ(hit->collider.body, with_override) << "ray missed the offset collider";
     ASSERT_EQ(hit->collider.index, 0) << "ray missed the offset collider";
     EXPECT_NEAR(hit->point.y, 0.5f, 0.001f) << "ray missed the offset collider";
     EXPECT_NEAR(hit->normal.y, 1.0f, 0.001f) << "ray missed the offset collider";
     EXPECT_NEAR(hit->fraction, 0.375f, 0.001f) << "ray missed the offset collider";
-    ASSERT_FALSE(world.cast_ray({2.0f, 2.0f}, {0.0f, -4.0f}, {1, 2})) << "ray ignored the collider mask";
-    ASSERT_FALSE(world.cast_ray({2.0f, 2.0f}, {0.0f, -4.0f}, {4, 1})) << "ray ignored the collider category";
+    ASSERT_FALSE(world.cast_ray_closest({2.0f, 2.0f}, {0.0f, -4.0f}, {1, 2})) << "ray ignored the collider mask";
+    ASSERT_FALSE(world.cast_ray_closest({2.0f, 2.0f}, {0.0f, -4.0f}, {4, 1})) << "ray ignored the collider category";
 
     const auto density_body{world.create_body({.type = nori::physics2d::body_type::dynamic_body, .transform = {{8.0f, 0.0f}, 0.0f}})};
     collider.center = {};
-    ASSERT_TRUE(world.add_box_collider(density_body, collider)) << "density collider rejected";
-    ASSERT_TRUE(world.apply_linear_impulse(density_body, {2.0f, 0.0f})) << "density does not determine dynamic mass";
+    ASSERT_TRUE(world.contains(world.add_box_collider(density_body, collider))) << "density collider rejected";
+    ASSERT_TRUE(world.apply_linear_impulse_to_center(density_body, {2.0f, 0.0f})) << "density does not determine dynamic mass";
     EXPECT_NEAR(world.velocity_of(density_body).value().linear.x, 1.0f, 0.001f) << "density does not determine dynamic mass";
 
     collider.is_sensor = true;
     const auto sensor_body{world.create_body({.type = nori::physics2d::body_type::dynamic_body, .transform = {{10.0f, 0.0f}, 0.0f}})};
-    ASSERT_TRUE(world.add_box_collider(sensor_body, collider)) << "sensor-only body lost its default dynamic mass";
-    ASSERT_TRUE(world.apply_linear_impulse(sensor_body, {1.0f, 0.0f})) << "sensor-only body lost its default dynamic mass";
+    ASSERT_TRUE(world.contains(world.add_box_collider(sensor_body, collider))) << "sensor-only body lost its default dynamic mass";
+    ASSERT_TRUE(world.apply_linear_impulse_to_center(sensor_body, {1.0f, 0.0f})) << "sensor-only body lost its default dynamic mass";
     EXPECT_NEAR(world.velocity_of(sensor_body).value().linear.x, 1.0f, 0.001f) << "sensor-only body lost its default dynamic mass";
 
     const nori::physics2d::box_collider_desc boxes[]{{{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}, {{}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}};
     ASSERT_FALSE(world.contains(world.create_body({.type = nori::physics2d::body_type::static_body, .transform = {{12.0f, 0.0f}, 0.0f}, .colliders = boxes}))) << "failed body creation left a collider in the scene";
-    ASSERT_FALSE(world.cast_ray({12.0f, 2.0f}, {0.0f, -4.0f})) << "failed body creation left a collider in the scene";
+    ASSERT_FALSE(world.cast_ray_closest({12.0f, 2.0f}, {0.0f, -4.0f})) << "failed body creation left a collider in the scene";
 }
 
 TEST(physics2d_scene_test, sensor_events)
@@ -140,7 +146,7 @@ TEST(physics2d_scene_test, sensor_events)
     const auto sensor{world.create_body({.type = nori::physics2d::body_type::static_body, .colliders = boxes})};
     const auto visitor{world.create_body({.type = nori::physics2d::body_type::dynamic_body})};
     ASSERT_TRUE(world.contains(sensor)) << "sensor event setup failed";
-    ASSERT_TRUE(world.add_box_collider(visitor, {{0.75f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "sensor event setup failed";
+    ASSERT_TRUE(world.contains(world.add_box_collider(visitor, {{0.75f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}))) << "sensor event setup failed";
     constexpr float step{1.0f / 60.0f};
     world.step(step);
     const auto begins{world.contact_events()};
@@ -184,18 +190,40 @@ TEST(physics2d_scene_test, box_collider_validation)
     nori::physics2d::scene other;
     const nori::physics2d::body_handle body{world.create_body({nori::physics2d::body_type::dynamic_body, {}, {}})};
     const nori::physics2d::body_handle foreign{other.create_body({})};
-    ASSERT_FALSE(world.add_box_collider({}, {{1.0f, 1.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "default handle is rejected";
-    ASSERT_FALSE(world.add_box_collider(foreign, {{1.0f, 1.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "foreign handle is rejected";
-    ASSERT_FALSE(world.add_box_collider(body, {{0.0f, 1.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "zero extent is rejected";
-    ASSERT_FALSE(world.add_box_collider(body, {{1.0f, -1.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "negative extent is rejected";
-    ASSERT_FALSE(world.add_box_collider(body, {{std::numeric_limits<float>::infinity(), 1.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "infinite extent is rejected";
-    ASSERT_FALSE(world.add_box_collider(body, {{1.0f, std::numeric_limits<float>::quiet_NaN()}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "NaN extent is rejected";
-    ASSERT_TRUE(world.add_box_collider(body, {{1.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "first collider can be added";
-    ASSERT_TRUE(world.add_box_collider(body, {{1.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "multiple colliders can be added";
-    ASSERT_TRUE(world.apply_linear_impulse(body, {4.0f, 0.0f})) << "impulse applies to body with colliders";
+    ASSERT_EQ(world.add_box_collider({}, {{1.0f, 1.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}), nori::physics2d::collider_handle{}) << "default handle is rejected";
+    ASSERT_EQ(world.add_box_collider(foreign, {{1.0f, 1.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}), nori::physics2d::collider_handle{}) << "foreign handle is rejected";
+    ASSERT_EQ(world.add_box_collider(body, {{0.0f, 1.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}), nori::physics2d::collider_handle{}) << "zero extent is rejected";
+    ASSERT_EQ(world.add_box_collider(body, {{1.0f, -1.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}), nori::physics2d::collider_handle{}) << "negative extent is rejected";
+    ASSERT_EQ(world.add_box_collider(body, {{std::numeric_limits<float>::infinity(), 1.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}), nori::physics2d::collider_handle{}) << "infinite extent is rejected";
+    ASSERT_EQ(world.add_box_collider(body, {{1.0f, std::numeric_limits<float>::quiet_NaN()}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}), nori::physics2d::collider_handle{}) << "NaN extent is rejected";
+    const nori::physics2d::box_collider_desc desc{{1.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false};
+    const auto first{world.add_box_collider(body, desc)};
+    const auto second{world.add_box_collider(body, desc)};
+    ASSERT_TRUE(world.contains(first));
+    ASSERT_TRUE(world.contains(second));
+    EXPECT_EQ(first.body, body);
+    EXPECT_EQ(second.body, body);
+    EXPECT_EQ(first.index, 0u);
+    EXPECT_EQ(second.index, 1u);
+    EXPECT_NE(first, second);
+    EXPECT_FALSE(world.contains(nori::physics2d::collider_handle{}));
+    EXPECT_FALSE(world.contains(nori::physics2d::collider_handle{body, 2}));
+    const auto foreign_collider{other.add_box_collider(foreign, desc)};
+    ASSERT_TRUE(other.contains(foreign_collider));
+    EXPECT_FALSE(world.contains(foreign_collider));
+    EXPECT_FALSE(other.contains(first));
+    ASSERT_TRUE(world.apply_linear_impulse_to_center(body, {4.0f, 0.0f})) << "impulse applies to body with colliders";
     EXPECT_NEAR(world.velocity_of(body).value().linear.x, 1.0f, 0.001f) << "collider areas determine dynamic mass";
     ASSERT_TRUE(world.destroy_body(body)) << "body with colliders can be destroyed";
-    ASSERT_FALSE(world.add_box_collider(body, {{1.0f, 1.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "destroyed handle is rejected";
+    EXPECT_FALSE(world.contains(first));
+    EXPECT_FALSE(world.contains(second));
+    const auto replacement{world.create_body({.type = nori::physics2d::body_type::dynamic_body})};
+    const auto replacement_collider{world.add_box_collider(replacement, desc)};
+    ASSERT_TRUE(world.contains(replacement_collider));
+    EXPECT_FALSE(world.contains(first));
+    EXPECT_FALSE(world.contains(second));
+    EXPECT_NE(first, replacement_collider);
+    ASSERT_EQ(world.add_box_collider(body, {{1.0f, 1.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}), nori::physics2d::collider_handle{}) << "destroyed handle is rejected";
 }
 
 TEST(physics2d_scene_test, contact_normals_and_rotation)
@@ -205,8 +233,8 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
     ASSERT_FALSE(world.set_gravity({0.0f, std::numeric_limits<float>::infinity()})) << "invalid gravity is rejected";
     const auto ground{world.create_body({.type = nori::physics2d::body_type::static_body})};
     const auto body{world.create_body({.type = nori::physics2d::body_type::dynamic_body, .transform = {{0.0f, 2.0f}, 0.0f}, .lock_rotation = true})};
-    ASSERT_TRUE(world.add_box_collider(ground, {{5.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "colliders created";
-    ASSERT_TRUE(world.add_box_collider(body, {{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "colliders created";
+    ASSERT_TRUE(world.contains(world.add_box_collider(ground, {{5.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}))) << "colliders created";
+    ASSERT_TRUE(world.contains(world.add_box_collider(body, {{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}))) << "colliders created";
     ASSERT_FALSE(has_contact_normal(world, body, {0.0f, 1.0f})) << "airborne and invalid bodies are not grounded";
     EXPECT_TRUE(world.contacts_of({}).empty()) << "airborne and invalid bodies are not grounded";
     for (int i{}; i < 120; ++i)
@@ -235,8 +263,8 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
     ASSERT_TRUE(wall_world.set_gravity({})) << "zero gravity is accepted";
     const auto wall{wall_world.create_body({.type = nori::physics2d::body_type::static_body})};
     const auto moving{wall_world.create_body({.type = nori::physics2d::body_type::dynamic_body, .transform = {{-1.5f, 0.0f}, 0.0f}, .velocity = {{3.0f, 0.0f}, 0.0f}, .lock_rotation = true})};
-    ASSERT_TRUE(wall_world.add_box_collider(wall, {{0.5f, 5.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "wall colliders created";
-    ASSERT_TRUE(wall_world.add_box_collider(moving, {{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "wall colliders created";
+    ASSERT_TRUE(wall_world.contains(wall_world.add_box_collider(wall, {{0.5f, 5.0f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}))) << "wall colliders created";
+    ASSERT_TRUE(wall_world.contains(wall_world.add_box_collider(moving, {{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}))) << "wall colliders created";
     for (int i{}; i < 60; ++i)
     {
         wall_world.step(1.0f / 60.0f);
@@ -247,8 +275,8 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
     ASSERT_TRUE(ceiling_world.set_gravity({})) << "zero gravity is accepted for ceiling test";
     const auto ceiling{ceiling_world.create_body({.type = nori::physics2d::body_type::static_body})};
     const auto rising{ceiling_world.create_body({.type = nori::physics2d::body_type::dynamic_body, .transform = {{0.0f, -1.5f}, 0.0f}, .velocity = {{0.0f, 3.0f}, 0.0f}, .lock_rotation = true})};
-    ASSERT_TRUE(ceiling_world.add_box_collider(ceiling, {{5.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "ceiling colliders created";
-    ASSERT_TRUE(ceiling_world.add_box_collider(rising, {{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})) << "ceiling colliders created";
+    ASSERT_TRUE(ceiling_world.contains(ceiling_world.add_box_collider(ceiling, {{5.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}))) << "ceiling colliders created";
+    ASSERT_TRUE(ceiling_world.contains(ceiling_world.add_box_collider(rising, {{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}))) << "ceiling colliders created";
     for (int i{}; i < 60; ++i)
     {
         ceiling_world.step(1.0f / 60.0f);
@@ -264,8 +292,8 @@ TEST(physics2d_scene_test, move_sleeping_contacts)
     ASSERT_TRUE(world.set_gravity({0.0f, -10.0f}));
     const auto ground{world.create_body({.type = nori::physics2d::body_type::static_body})};
     const auto body{world.create_body({.type = nori::physics2d::body_type::dynamic_body, .transform = {{0.0f, 2.0f}, 0.0f}})};
-    ASSERT_TRUE(world.add_box_collider(ground, {{5.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}));
-    ASSERT_TRUE(world.add_box_collider(body, {{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}));
+    ASSERT_TRUE(world.contains(world.add_box_collider(ground, {{5.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})));
+    ASSERT_TRUE(world.contains(world.add_box_collider(body, {{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false})));
     constexpr float step{1.0f / 60.0f};
     for (int i{}; i < 180; ++i)
     {
@@ -317,7 +345,7 @@ TEST(physics2d_scene_test, handle_lifetime)
     ASSERT_FALSE(first.transform_of(original)) << "expired handle cannot access replacement";
     ASSERT_FALSE(first.set_velocity(original, {})) << "expired handle cannot access replacement";
     ASSERT_FALSE(first.contains(nori::physics2d::body_handle{})) << "default handle is invalid";
-    ASSERT_FALSE(first.apply_force({}, {})) << "default handle is invalid";
+    ASSERT_FALSE(first.apply_force_to_center({}, {})) << "default handle is invalid";
     ASSERT_EQ(first.create_body({nori::physics2d::body_type::dynamic_body, {{}, std::numeric_limits<float>::infinity()}, {}}), nori::physics2d::body_handle{}) << "nonfinite transform is rejected";
 }
 } // namespace

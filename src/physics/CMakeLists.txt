@@ -10,6 +10,9 @@ target_sources(nori_physics
             ${PROJECT_SOURCE_DIR}/include/nori/physics2d/body.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/physics2d/body_handle.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/physics2d/collider.hpp
+            ${PROJECT_SOURCE_DIR}/include/nori/physics2d/collider_handle.hpp
+            ${PROJECT_SOURCE_DIR}/include/nori/physics2d/contact.hpp
+            ${PROJECT_SOURCE_DIR}/include/nori/physics2d/query.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/physics2d/scene.hpp
     PRIVATE
         physics2d/scene.cpp

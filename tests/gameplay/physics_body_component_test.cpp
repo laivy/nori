@@ -10,6 +10,7 @@
 #include <nori/gameplay/world/world.hpp>
 #include <nori/physics2d/body.hpp>
 #include <nori/physics2d/collider.hpp>
+#include <nori/physics2d/contact.hpp>
 #include <nori/physics2d/scene.hpp>
 
 namespace

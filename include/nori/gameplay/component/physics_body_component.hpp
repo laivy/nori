@@ -4,7 +4,9 @@
 
 #include <nori/gameplay/component/component.hpp>
 #include <nori/physics2d/body.hpp>
+#include <nori/physics2d/body_handle.hpp>
 #include <nori/physics2d/collider.hpp>
+#include <nori/physics2d/contact.hpp>
 
 namespace nori::gameplay
 {

@@ -3,6 +3,7 @@
 
 #include <nori/core/abort.hpp>
 #include <nori/gameplay/world/world.hpp>
+#include <nori/physics2d/contact.hpp>
 
 namespace nori::gameplay
 {
