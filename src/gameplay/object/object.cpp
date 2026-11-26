@@ -93,13 +93,13 @@ update_scheduler& object::registration_scheduler()
     return *scheduler;
 }
 
-void object::attach_to_world(gameplay::world& active, object_handle handle)
+void object::register_object(gameplay::world& world, object_handle handle)
 {
-    if (world_ || active.find_object(handle) != this)
+    if (world_ || world.find_object(handle) != this)
     {
         core::abort("object registration requires an owning world");
     }
-    world_ = &active;
+    world_ = &world;
     handle_ = handle;
     const auto initial{find_components<component>()};
     for (auto* value : initial)
@@ -119,7 +119,7 @@ void object::attach_to_world(gameplay::world& active, object_handle handle)
     });
 }
 
-void object::detach_from_world()
+void object::unregister_object()
 {
     if (!world_ || unregistering_components_)
     {
@@ -175,11 +175,11 @@ bool object::contains_component(const component& value) const
     return std::ranges::find(components_, &value, &std::unique_ptr<component>::get) != components_.end();
 }
 
-void object::finish_update()
+void object::flush_component_removals()
 {
     if (notifying_component_removal_ || (world_ && world_scheduler().is_executing()))
     {
-        core::abort("cannot finish object update during execution");
+        core::abort("cannot flush component removals during execution");
     }
     while (!pending_component_removals_.empty())
     {

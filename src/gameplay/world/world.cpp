@@ -75,7 +75,7 @@ bool world::destroy_object(object_handle handle)
     {
         return false;
     }
-    object->detach_from_world();
+    object->unregister_object();
     return true;
 }
 
@@ -123,7 +123,7 @@ void world::flush_pending_changes()
 object_handle world::insert(std::unique_ptr<object> value)
 {
     const auto handle{objects_.insert(std::move(value))};
-    objects_.find(handle)->attach_to_world(*this, handle);
+    objects_.find(handle)->register_object(*this, handle);
     return handle;
 }
 

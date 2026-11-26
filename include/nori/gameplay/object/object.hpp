@@ -127,9 +127,9 @@ protected:
     bool remove_update_prerequisite(update_handle target, update_handle prerequisite);
 
 private:
-    void attach_to_world(gameplay::world& active, object_handle handle);
-    void detach_from_world();
-    void finish_update();
+    void register_object(gameplay::world& world, object_handle handle);
+    void unregister_object();
+    void flush_component_removals();
 
     template <typename component_type, typename object_type>
     static auto collect_components(object_type& object)
