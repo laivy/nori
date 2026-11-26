@@ -1,7 +1,11 @@
-#include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <map>
+#include <memory>
+#include <optional>
+#include <span>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
@@ -9,8 +13,11 @@
 
 #include <box2d/box2d.h>
 
+#include <nori/core/handle.hpp>
 #include <nori/core/slot_map.hpp>
-
+#include <nori/core/vector.hpp>
+#include <nori/physics2d/body.hpp>
+#include <nori/physics2d/collider.hpp>
 #include <nori/physics2d/scene.hpp>
 
 namespace

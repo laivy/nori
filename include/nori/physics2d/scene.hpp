@@ -4,6 +4,7 @@
 #include <optional>
 #include <span>
 
+#include <nori/core/vector.hpp>
 #include <nori/physics2d/body.hpp>
 #include <nori/physics2d/collider.hpp>
 

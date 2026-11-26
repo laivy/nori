@@ -1,7 +1,10 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
+#include <optional>
 
+#include <nori/core/vector.hpp>
 #include <nori/physics2d/body.hpp>
 
 namespace nori::physics2d
