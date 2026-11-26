@@ -178,7 +178,7 @@ public:
     std::uint64_t id;
     core::slot_map<core::basic_handle<detail::body_tag>, body_entry> bodies;
     b2WorldId world;
-    std::unordered_map<std::uint64_t, collider_ref> colliders;
+    std::unordered_map<std::uint64_t, collider_handle> colliders;
     std::map<contact_key, contact_event> active_contacts;
     std::vector<contact_event> events;
     std::vector<contact_event> removed_contacts;
@@ -331,17 +331,18 @@ bool scene::add_box_collider(const box_collider_desc& desc)
         return false;
     }
     const auto key{b2StoreShapeId(shape)};
-    impl_->colliders.emplace(key, collider_ref{desc.body, entry.shapes.size()});
+    impl_->colliders.emplace(key, collider_handle{desc.body, entry.shapes.size()});
     entry.shapes.push_back(key);
     impl::apply_dynamic_mass(entry);
     return true;
 }
 
-bool scene::is_grounded(body_handle body, float min_normal_y) const
+std::vector<contact_point> scene::contacts_of(body_handle body) const
 {
-    if (!contains(body) || !std::isfinite(min_normal_y) || min_normal_y < 0.0f || min_normal_y > 1.0f)
+    std::vector<contact_point> result;
+    if (!contains(body))
     {
-        return false;
+        return result;
     }
     const auto id{impl_->bodies[body.slot].id};
     std::vector<b2ContactData> contacts(static_cast<std::size_t>(b2Body_GetContactCapacity(id)));
@@ -353,25 +354,25 @@ bool scene::is_grounded(body_handle body, float min_normal_y) const
         const auto second{b2Shape_GetBody(contact.shapeIdB)};
         const bool is_first{B2_ID_EQUALS(first, id)};
         const auto normal{is_first ? b2Neg(contact.manifold.normal) : contact.manifold.normal};
-        if (normal.y <= min_normal_y)
+        const auto self{impl_->colliders.find(b2StoreShapeId(is_first ? contact.shapeIdA : contact.shapeIdB))};
+        const auto other{impl_->colliders.find(b2StoreShapeId(is_first ? contact.shapeIdB : contact.shapeIdA))};
+        if (self == impl_->colliders.end() || other == impl_->colliders.end())
         {
             continue;
         }
         for (int j{}; j < contact.manifold.pointCount; ++j)
         {
             const auto& point{contact.manifold.points[j]};
-            const auto velocity_a{b2Body_GetWorldPointVelocity(first, b2OffsetPos(b2Body_GetWorldCenter(first), point.anchorA))};
-            const auto velocity_b{b2Body_GetWorldPointVelocity(second, b2OffsetPos(b2Body_GetWorldCenter(second), point.anchorB))};
+            const auto point_a{b2OffsetPos(b2Body_GetWorldCenter(first), point.anchorA)};
+            const auto point_b{b2OffsetPos(b2Body_GetWorldCenter(second), point.anchorB)};
+            const auto position{is_first ? point_a : point_b};
+            const auto velocity_a{b2Body_GetWorldPointVelocity(first, point_a)};
+            const auto velocity_b{b2Body_GetWorldPointVelocity(second, point_b)};
             const auto relative_velocity{is_first ? b2Sub(velocity_a, velocity_b) : b2Sub(velocity_b, velocity_a)};
-            constexpr float resting_speed_tolerance{0.01f};
-            if (b2Dot(relative_velocity, normal) <= resting_speed_tolerance &&
-                (point.separation <= 0.0f || point.totalNormalImpulse > 0.0f))
-            {
-                return true;
-            }
+            result.push_back({self->second, other->second, {static_cast<float>(position.x), static_cast<float>(position.y)}, {normal.x, normal.y}, {relative_velocity.x, relative_velocity.y}, point.separation, point.normalImpulse, point.totalNormalImpulse});
         }
     }
-    return false;
+    return result;
 }
 
 std::optional<ray_hit> scene::cast_ray(core::vec2 origin, core::vec2 translation, collision_filter filter) const
@@ -393,7 +394,7 @@ std::span<const contact_event> scene::contact_events() const
     return impl_->events;
 }
 
-std::optional<body_transform> scene::get_transform(body_handle body) const
+std::optional<body_transform> scene::transform_of(body_handle body) const
 {
     if (!contains(body))
     {
@@ -412,11 +413,14 @@ bool scene::set_transform(body_handle body, body_transform transform)
         return false;
     }
 
-    b2Body_SetTransform(impl_->bodies[body.slot].id, {transform.position.x, transform.position.y}, b2MakeRot(transform.angle_radians));
+    const auto id{impl_->bodies[body.slot].id};
+    b2Body_SetTransform(id, {transform.position.x, transform.position.y}, b2MakeRot(transform.angle_radians));
+    b2Body_SetAwake(id, true);
+    b2Body_WakeTouching(id);
     return true;
 }
 
-std::optional<body_velocity> scene::get_velocity(body_handle body) const
+std::optional<body_velocity> scene::velocity_of(body_handle body) const
 {
     if (!contains(body))
     {

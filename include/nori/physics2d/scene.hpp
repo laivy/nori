@@ -3,6 +3,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <vector>
 
 #include <nori/core/vector.hpp>
 #include <nori/physics2d/body.hpp>
@@ -29,13 +30,16 @@ public:
     [[nodiscard]] bool contains(body_handle body) const noexcept;
 
     bool add_box_collider(const box_collider_desc& desc);
-    [[nodiscard]] bool is_grounded(body_handle body, float min_normal_y = 0.5f) const;
+    // Returns the contact manifold data from the physics simulation, not a live overlap query.
+    [[nodiscard]] std::vector<contact_point> contacts_of(body_handle body) const;
     [[nodiscard]] std::optional<ray_hit> cast_ray(core::vec2 origin, core::vec2 translation, collision_filter filter = default_collision_filter) const;
     [[nodiscard]] std::span<const contact_event> contact_events() const;
 
-    [[nodiscard]] std::optional<body_transform> get_transform(body_handle body) const;
+    [[nodiscard]] std::optional<body_transform> transform_of(body_handle body) const;
+    // Moves the body and wakes it and its touching bodies where applicable.
+    // Contact manifolds are refreshed by a subsequent simulation step.
     bool set_transform(body_handle body, body_transform transform);
-    [[nodiscard]] std::optional<body_velocity> get_velocity(body_handle body) const;
+    [[nodiscard]] std::optional<body_velocity> velocity_of(body_handle body) const;
     bool set_velocity(body_handle body, body_velocity velocity);
 
     bool apply_force(body_handle body, core::vec2 force);

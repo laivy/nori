@@ -14,6 +14,7 @@
 #include <nori/core/rtti.hpp>
 #include <nori/core/slot_map.hpp>
 #include <nori/core/timer.hpp>
+#include <nori/core/transform.hpp>
 #include <nori/core/vector.hpp>
 
 #if defined(_WIN32)

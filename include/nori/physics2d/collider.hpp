@@ -43,10 +43,29 @@ struct box_collider_config
     std::optional<box_collider_settings> settings;
 };
 
-struct collider_ref
+struct collider_handle
 {
+    [[nodiscard]] bool operator==(const collider_handle&) const noexcept = default;
+
     body_handle body;
     std::size_t index;
+};
+
+struct contact_point
+{
+    collider_handle self;
+    collider_handle other;
+    // World-space contact anchor on self.
+    core::vec2 point;
+    // Unit normal pointing from other to self.
+    core::vec2 normal;
+    // Current point velocity of self minus that of other.
+    core::vec2 relative_velocity;
+    // Negative for penetration; speculative contacts can have positive separation.
+    float separation;
+    float normal_impulse;
+    // Accumulated normal impulse across substeps, including restitution.
+    float total_normal_impulse;
 };
 
 enum class contact_kind
@@ -62,15 +81,15 @@ enum class contact_phase
 
 struct contact_event
 {
-    collider_ref first;
-    collider_ref second;
+    collider_handle first;
+    collider_handle second;
     contact_kind kind;
     contact_phase phase;
 };
 
 struct ray_hit
 {
-    collider_ref collider;
+    collider_handle collider;
     core::vec2 point;
     core::vec2 normal;
     float fraction;

@@ -51,7 +51,7 @@ if (@nori_build_physics@)
     endif ()
 endif ()
 
-set(nori_supported_components core io resource asset graphics physics imgui)
+set(nori_supported_components core io resource asset graphics physics gameplay imgui)
 foreach (nori_component IN LISTS nori_supported_components)
     if (nori_component STREQUAL imgui)
         set(nori_component_target nori::graphics::imgui)

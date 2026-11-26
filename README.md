@@ -15,6 +15,7 @@
 | `asset`    | 이미지, 모델, 셰이더와 바이너리 에셋 cooking                                 |
 | `graphics` | DirectX 12 렌더링, 선택적 Dear ImGui 연동                                    |
 | `physics`  | Box2D 기반 2D 물리 시뮬레이션 (`nori::physics2d`)                             |
+| `gameplay` | 월드, 오브젝트, 컴포넌트, 업데이트 스케줄링 및 물리 연동                      |
 
 ## 요구 사항
 

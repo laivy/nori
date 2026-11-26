@@ -22,6 +22,7 @@ target_sources(nori_core
             ${PROJECT_SOURCE_DIR}/include/nori/core/rtti.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/core/slot_map.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/core/timer.hpp
+            ${PROJECT_SOURCE_DIR}/include/nori/core/transform.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/core/vector.hpp
     PRIVATE
         abort.cpp
@@ -31,6 +32,7 @@ target_sources(nori_core
         input.cpp
         input_internal.hpp
         timer.cpp
+        transform.cpp
         vector.cpp
 )
 
