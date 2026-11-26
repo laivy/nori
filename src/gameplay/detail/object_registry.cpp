@@ -80,26 +80,11 @@ bool object_registry::destroy(object_handle handle)
 
 void object_registry::flush_pending_changes()
 {
-    std::vector<slot_handle> keys;
-    keys.reserve(objects_.size());
     for (const auto& [key, value] : objects_)
     {
-        keys.push_back(key);
-    }
-    for (const auto key : keys)
-    {
-        if (!objects_.contains(key))
-        {
-            continue;
-        }
-        auto& value{objects_.at(key)};
         if (value.pending_removal)
         {
             objects_.erase(key);
-        }
-        else
-        {
-            value.value->flush_pending_changes();
         }
     }
 }

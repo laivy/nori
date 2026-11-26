@@ -17,6 +17,8 @@ class component : public core::rtti<component>
 
 public:
     explicit component(object& owner);
+    // Destructors must not request object or component lifecycle changes.
+    // Perform world-related cleanup in on_unregister().
     virtual ~component() = default;
 
     component(const component&) = delete;

@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include <nori/core/abort.hpp>
 #include <nori/core/multicast_delegate.hpp>
 #include <nori/core/rtti.hpp>
 #include <nori/gameplay/detail/object_registry.hpp>
@@ -40,6 +41,10 @@ public:
     requires std::derived_from<object_type, object>
     object_handle create_object(arguments&&... args)
     {
+        if (clearing_)
+        {
+            core::abort("cannot create an object while clearing a world");
+        }
         return insert(std::make_unique<object_type>(std::forward<arguments>(args)...));
     }
 
@@ -57,6 +62,8 @@ public:
     void fixed_update(float delta_seconds);
     [[nodiscard]] update_scheduler& scheduler();
 
+    // Processes pending removals, including requests made by lifecycle callbacks.
+    // Must not be called during updates, lifecycle callbacks or another flush.
     void flush_pending_changes();
 
 private:
@@ -87,6 +94,8 @@ private:
     update_scheduler scheduler_;
     std::vector<object_handle> pending_destructions_;
     detail::object_registry objects_;
+    bool flushing_{};
+    bool clearing_{};
     core::multicast_delegate<void(const trigger_changed&)> trigger_changed_;
     std::vector<trigger_changed> events_;
     std::vector<body_owner> body_owners_;

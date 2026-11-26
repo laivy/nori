@@ -105,19 +105,36 @@ update_scheduler& world::scheduler()
 
 void world::flush_pending_changes()
 {
-    if (scheduler_.is_executing())
+    if (scheduler_.is_executing() || flushing_)
     {
-        core::abort("cannot flush objects during update execution");
+        core::abort("cannot flush pending changes during execution");
     }
-    while (!pending_destructions_.empty())
+    flushing_ = true;
+    bool changed{};
+    do
     {
-        auto pending{std::exchange(pending_destructions_, {})};
-        for (const auto handle : pending)
+        while (!pending_destructions_.empty())
         {
-            destroy_object(handle);
+            auto pending{std::exchange(pending_destructions_, {})};
+            for (const auto handle : pending)
+            {
+                destroy_object(handle);
+            }
         }
-    }
+        changed = false;
+        for (const auto handle : objects())
+        {
+            if (auto* value{find_object(handle)})
+            {
+                if (value->flush_pending_changes())
+                {
+                    changed = true;
+                }
+            }
+        }
+    } while (changed || !pending_destructions_.empty());
     objects_.flush_pending_changes();
+    flushing_ = false;
 }
 
 object_handle world::insert(std::unique_ptr<object> value)
@@ -129,10 +146,11 @@ object_handle world::insert(std::unique_ptr<object> value)
 
 void world::clear()
 {
-    if (scheduler_.is_executing())
+    if (scheduler_.is_executing() || flushing_ || clearing_)
     {
-        core::abort("cannot clear a world during update execution");
+        core::abort("cannot clear a world during execution");
     }
+    clearing_ = true;
     for (const auto handle : objects())
     {
         destroy_object(handle);
@@ -142,6 +160,7 @@ void world::clear()
     events_.clear();
     body_owners_.clear();
     active_triggers_.clear();
+    clearing_ = false;
 }
 
 void world::on_physics_update(float delta_seconds)

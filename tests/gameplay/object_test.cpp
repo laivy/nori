@@ -1,3 +1,5 @@
+#include <functional>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -252,5 +254,83 @@ TEST(object_test, variable_update_lifecycle)
     game.fixed_update(fixed_step);
     game.update(0.005f);
     ASSERT_TRUE((calls.empty())) << "removed object's callback executed in another category";
+}
+class removal_callback_component final : public nori::core::rtti<removal_callback_component, nori::gameplay::component>
+{
+public:
+    removal_callback_component(nori::gameplay::object& owner, std::move_only_function<void()> callback, bool remove_self) :
+        rtti{owner},
+        callback_{std::move(callback)},
+        remove_self_{remove_self}
+    {
+    }
+
+protected:
+    void on_register() override
+    {
+        if (remove_self_)
+        {
+            register_update(nori::gameplay::update_group::pre_physics, &removal_callback_component::update);
+        }
+    }
+
+    void on_unregister() override
+    {
+        callback_();
+    }
+
+private:
+    void update(float)
+    {
+        EXPECT_TRUE(owner().remove_component(*this));
+    }
+
+    std::move_only_function<void()> callback_;
+    bool remove_self_;
+};
+
+TEST(object_test, cascading_removals)
+{
+    int destroyed{};
+    nori::gameplay::world active;
+    active.create_object<nori::gameplay::object>();
+    active.create_object<nori::gameplay::object>();
+    const auto handles{active.objects()};
+    ASSERT_EQ(handles.size(), 2u);
+    auto& target{*active.find_object(handles.front())};
+    auto& source{*active.find_object(handles.back())};
+    const auto victim{active.create_object<tracked_object>(destroyed)};
+    auto& target_component{target.add_component<removal_callback_component>([&]
+    {
+        EXPECT_TRUE(active.destroy_object(victim));
+    }, false)};
+    source.add_component<removal_callback_component>([&]
+    {
+        EXPECT_TRUE(target.remove_component(target_component));
+    }, true);
+    active.fixed_update(fixed_step);
+    EXPECT_EQ(source.find_component<removal_callback_component>(), nullptr);
+    EXPECT_EQ(target.find_component<removal_callback_component>(), nullptr);
+    EXPECT_EQ(active.find_object(victim), nullptr);
+    EXPECT_EQ(destroyed, 1);
+}
+
+class shutdown_creation_object final : public nori::core::rtti<shutdown_creation_object, nori::gameplay::object>
+{
+protected:
+    void on_unregister() override
+    {
+        world().create_object<nori::gameplay::object>();
+    }
+};
+
+TEST(object_test, creation_during_world_shutdown)
+{
+    EXPECT_DEATH_IF_SUPPORTED(
+        {
+            nori::gameplay::world active;
+            active.create_object<shutdown_creation_object>();
+        },
+        "cannot create an object while clearing a world");
 }
 } // namespace

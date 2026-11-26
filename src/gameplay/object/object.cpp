@@ -175,12 +175,13 @@ bool object::contains_component(const component& value) const
     return std::ranges::find(components_, &value, &std::unique_ptr<component>::get) != components_.end();
 }
 
-void object::flush_pending_changes()
+bool object::flush_pending_changes()
 {
     if (notifying_component_removal_ || (world_ && world_scheduler().is_executing()))
     {
         core::abort("cannot flush pending changes during execution");
     }
+    const bool changed{!pending_component_removals_.empty() || !retired_components_.empty()};
     while (!pending_component_removals_.empty())
     {
         const auto value{pending_component_removals_.front()};
@@ -188,6 +189,7 @@ void object::flush_pending_changes()
         remove_component_now(*value);
     }
     retired_components_.clear();
+    return changed;
 }
 
 void object::remove_component_now(component& value)

@@ -16,11 +16,6 @@
 #include <nori/gameplay/update/update_handle.hpp>
 #include <nori/gameplay/update/update_scheduler.hpp>
 
-namespace nori::gameplay::detail
-{
-class object_registry;
-}
-
 namespace nori::gameplay
 {
 class world;
@@ -28,10 +23,11 @@ class world;
 class object : public core::rtti<object>
 {
     friend class world;
-    friend class detail::object_registry;
 
 public:
     explicit object(core::transform pose = core::transform::identity);
+    // Destructors must not request object or component lifecycle changes.
+    // Perform world-related cleanup in on_unregister().
     virtual ~object() = default;
 
     object(const object&) = delete;
@@ -129,7 +125,7 @@ protected:
 private:
     void register_object(gameplay::world& world, object_handle handle);
     void unregister_object();
-    void flush_pending_changes();
+    bool flush_pending_changes();
 
     template <typename component_type, typename object_type>
     static auto collect_components(object_type& object)
