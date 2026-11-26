@@ -245,6 +245,7 @@ if (nori_build_physics)
         FetchContent_MakeAvailable(box2d)
     endblock()
     if (NORI_INSTALL)
+        FetchContent_GetProperties(box2d)
         nori_register_package_license(
             "${box2d_SOURCE_DIR}/LICENSE"
             box2d-LICENSE.txt

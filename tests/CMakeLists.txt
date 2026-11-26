@@ -167,6 +167,21 @@ endif ()
 if (TARGET nori::physics)
     nori_add_test(nori_physics_tests nori::physics unit
         SOURCES physics/physics2d/scene_test.cpp)
+    if (NORI_INSTALL)
+        add_test(NAME nori_physics_package
+            COMMAND "${CMAKE_COMMAND}"
+                "-Dtest_source_dir=${CMAKE_CURRENT_SOURCE_DIR}/physics/package"
+                "-Dtest_binary_dir=${PROJECT_BINARY_DIR}"
+                "-Dtest_config=$<CONFIG>"
+                "-Dtest_generator=${CMAKE_GENERATOR}"
+                "-Dtest_generator_platform=${CMAKE_GENERATOR_PLATFORM}"
+                "-Dtest_generator_toolset=${CMAKE_GENERATOR_TOOLSET}"
+                "-Dtest_cxx_compiler=${CMAKE_CXX_COMPILER}"
+                "-Dtest_ctest_command=${CMAKE_CTEST_COMMAND}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/physics/package_test.cmake"
+        )
+        set_tests_properties(nori_physics_package PROPERTIES LABELS integration TIMEOUT 180)
+    endif ()
 endif ()
 
 if (TARGET nori_cli_core)
