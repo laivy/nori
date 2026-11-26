@@ -24,9 +24,9 @@ FetchContent_Declare(
 
 FetchContent_Declare(
     box2d
-    GIT_REPOSITORY https://github.com/erincatto/box2d.git
-    GIT_TAG v3.2.0
-    GIT_SHALLOW TRUE
+    URL https://github.com/erincatto/box2d/archive/178495ba35695aefe9c321e569d2277f06db3b90.tar.gz
+    URL_HASH SHA256=f226d0684c46d06ddbc947c2ab33758cb220eca6624549778250e94f845097c9
+    DOWNLOAD_NO_PROGRESS TRUE
     EXCLUDE_FROM_ALL
     SYSTEM
 )
