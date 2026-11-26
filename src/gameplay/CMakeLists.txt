@@ -14,7 +14,6 @@ target_sources(nori_gameplay
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/object/object.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/object/object_handle.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/object/object_registry.hpp
-            ${PROJECT_SOURCE_DIR}/include/nori/gameplay/transform.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/update/update_category.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/update/update_group.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/update/update_handle.hpp
@@ -28,7 +27,6 @@ target_sources(nori_gameplay
         game_instance/game_instance.cpp
         object/object.cpp
         object/object_registry.cpp
-        transform.cpp
         update/update_scheduler.cpp
         world/world.cpp
         world/world_events.cpp

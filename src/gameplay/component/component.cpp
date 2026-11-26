@@ -1,3 +1,4 @@
+#include <nori/core/abort.hpp>
 #include <nori/gameplay/component/component.hpp>
 #include <nori/gameplay/object/object.hpp>
 #include <nori/gameplay/world/world.hpp>

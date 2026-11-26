@@ -49,6 +49,16 @@ struct collider_ref
     std::size_t index;
 };
 
+struct contact_point
+{
+    collider_ref self;
+    collider_ref other;
+    core::vec2 normal;
+    core::vec2 relative_velocity;
+    float separation;
+    float normal_impulse;
+};
+
 enum class contact_kind
 {
     contact,

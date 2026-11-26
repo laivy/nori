@@ -1,11 +1,10 @@
 #pragma once
-
 #include <cstdint>
 #include <memory>
 #include <vector>
 
+#include <nori/core/handle.hpp>
 #include <nori/core/slot_map.hpp>
-
 #include <nori/gameplay/object/object.hpp>
 #include <nori/gameplay/object/object_handle.hpp>
 
@@ -14,7 +13,7 @@ namespace nori::gameplay
 class object_registry
 {
 public:
-    object_registry();
+    explicit object_registry(std::uint64_t world_id);
     ~object_registry() = default;
 
     object_registry(const object_registry&) = delete;
@@ -31,8 +30,7 @@ public:
     void flush_pending_changes();
 
 private:
-    struct slot_tag;
-    using slot_handle = core::basic_handle<slot_tag>;
+    using slot_handle = core::basic_handle<detail::object_tag>;
 
     struct entry
     {

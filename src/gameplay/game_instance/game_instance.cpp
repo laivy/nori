@@ -2,7 +2,6 @@
 
 namespace nori::gameplay
 {
-
 game_instance::~game_instance()
 {
     stop();
@@ -54,5 +53,4 @@ const world* game_instance::active_world() const
 {
     return active_.get();
 }
-
 } // namespace nori::gameplay

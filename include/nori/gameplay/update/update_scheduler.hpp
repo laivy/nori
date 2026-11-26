@@ -1,5 +1,4 @@
 #pragma once
-
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -11,7 +10,6 @@
 #include <vector>
 
 #include <nori/core/abort.hpp>
-
 #include <nori/gameplay/update/update_category.hpp>
 #include <nori/gameplay/update/update_group.hpp>
 #include <nori/gameplay/update/update_handle.hpp>

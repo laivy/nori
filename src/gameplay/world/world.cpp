@@ -4,7 +4,6 @@
 #include <utility>
 
 #include <nori/core/abort.hpp>
-
 #include <nori/gameplay/world/world.hpp>
 
 namespace
@@ -15,7 +14,8 @@ std::atomic<std::uint64_t> next_world_id{1};
 namespace nori::gameplay
 {
 world::world() :
-    id_{next_world_id.fetch_add(1, std::memory_order_relaxed)}
+    id_{next_world_id.fetch_add(1, std::memory_order_relaxed)},
+    objects_{id_}
 {
     if (id_ == 0)
     {

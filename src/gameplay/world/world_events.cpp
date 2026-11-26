@@ -2,7 +2,6 @@
 #include <utility>
 
 #include <nori/core/abort.hpp>
-
 #include <nori/gameplay/world/world.hpp>
 
 namespace

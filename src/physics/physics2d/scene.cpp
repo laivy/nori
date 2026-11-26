@@ -337,11 +337,12 @@ bool scene::add_box_collider(const box_collider_desc& desc)
     return true;
 }
 
-bool scene::is_grounded(body_handle body, float min_normal_y) const
+std::vector<contact_point> scene::get_contacts(body_handle body) const
 {
-    if (!contains(body) || !std::isfinite(min_normal_y) || min_normal_y < 0.0f || min_normal_y > 1.0f)
+    std::vector<contact_point> result;
+    if (!contains(body))
     {
-        return false;
+        return result;
     }
     const auto id{impl_->bodies[body.slot].id};
     std::vector<b2ContactData> contacts(static_cast<std::size_t>(b2Body_GetContactCapacity(id)));
@@ -353,7 +354,9 @@ bool scene::is_grounded(body_handle body, float min_normal_y) const
         const auto second{b2Shape_GetBody(contact.shapeIdB)};
         const bool is_first{B2_ID_EQUALS(first, id)};
         const auto normal{is_first ? b2Neg(contact.manifold.normal) : contact.manifold.normal};
-        if (normal.y <= min_normal_y)
+        const auto self{impl_->colliders.find(b2StoreShapeId(is_first ? contact.shapeIdA : contact.shapeIdB))};
+        const auto other{impl_->colliders.find(b2StoreShapeId(is_first ? contact.shapeIdB : contact.shapeIdA))};
+        if (self == impl_->colliders.end() || other == impl_->colliders.end())
         {
             continue;
         }
@@ -363,15 +366,10 @@ bool scene::is_grounded(body_handle body, float min_normal_y) const
             const auto velocity_a{b2Body_GetWorldPointVelocity(first, b2OffsetPos(b2Body_GetWorldCenter(first), point.anchorA))};
             const auto velocity_b{b2Body_GetWorldPointVelocity(second, b2OffsetPos(b2Body_GetWorldCenter(second), point.anchorB))};
             const auto relative_velocity{is_first ? b2Sub(velocity_a, velocity_b) : b2Sub(velocity_b, velocity_a)};
-            constexpr float resting_speed_tolerance{0.01f};
-            if (b2Dot(relative_velocity, normal) <= resting_speed_tolerance &&
-                (point.separation <= 0.0f || point.totalNormalImpulse > 0.0f))
-            {
-                return true;
-            }
+            result.push_back({self->second, other->second, {normal.x, normal.y}, {relative_velocity.x, relative_velocity.y}, point.separation, point.totalNormalImpulse});
         }
     }
-    return false;
+    return result;
 }
 
 std::optional<ray_hit> scene::cast_ray(core::vec2 origin, core::vec2 translation, collision_filter filter) const

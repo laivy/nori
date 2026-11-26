@@ -2,14 +2,14 @@
 #include <utility>
 
 #include <nori/core/abort.hpp>
-
+#include <nori/core/transform.hpp>
 #include <nori/gameplay/component/physics_body_component.hpp>
 #include <nori/gameplay/object/object.hpp>
 #include <nori/gameplay/world/world.hpp>
 
 namespace
 {
-nori::physics2d::body_transform body_pose(const nori::gameplay::transform& pose)
+nori::physics2d::body_transform body_pose(const nori::core::transform& pose)
 {
     if (pose.scale.x != 1.0f || pose.scale.y != 1.0f || pose.rotation.x != 0.0f || pose.rotation.y != 0.0f)
     {
@@ -47,9 +47,9 @@ bool physics_body_component::set_velocity(physics2d::body_velocity value)
     return is_registered() && owner().world().physics_scene().set_velocity(body_, value);
 }
 
-bool physics_body_component::is_grounded(float min_normal_y) const
+std::vector<physics2d::contact_point> physics_body_component::get_contacts() const
 {
-    return is_registered() && !teleported_ && !pending_teleport_ && owner().world().physics_scene().is_grounded(body_, min_normal_y);
+    return is_registered() && !teleported_ && !pending_teleport_ ? owner().world().physics_scene().get_contacts(body_) : std::vector<physics2d::contact_point>{};
 }
 
 bool physics_body_component::teleport(physics2d::body_transform pose, bool preserve_velocity)

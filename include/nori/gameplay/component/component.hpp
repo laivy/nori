@@ -1,7 +1,10 @@
 #pragma once
+#include <concepts>
+#include <type_traits>
 
 #include <nori/core/rtti.hpp>
-
+#include <nori/gameplay/update/update_group.hpp>
+#include <nori/gameplay/update/update_handle.hpp>
 #include <nori/gameplay/update/update_scheduler.hpp>
 
 namespace nori::gameplay
@@ -24,9 +27,6 @@ public:
     [[nodiscard]] object& owner();
     [[nodiscard]] const object& owner() const;
     [[nodiscard]] bool is_registered() const noexcept;
-
-    void register_component();
-    void unregister_component();
 
 protected:
     virtual void on_register()
@@ -54,6 +54,8 @@ protected:
     bool remove_update_prerequisite(update_handle target, update_handle prerequisite);
 
 private:
+    void register_component();
+    void unregister_component();
     [[nodiscard]] update_scheduler* active_scheduler() const;
     update_scheduler& registration_scheduler();
 

@@ -3,6 +3,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <vector>
 
 #include <nori/core/vector.hpp>
 #include <nori/physics2d/body.hpp>
@@ -29,7 +30,7 @@ public:
     [[nodiscard]] bool contains(body_handle body) const noexcept;
 
     bool add_box_collider(const box_collider_desc& desc);
-    [[nodiscard]] bool is_grounded(body_handle body, float min_normal_y = 0.5f) const;
+    [[nodiscard]] std::vector<contact_point> get_contacts(body_handle body) const;
     [[nodiscard]] std::optional<ray_hit> cast_ray(core::vec2 origin, core::vec2 translation, collision_filter filter = default_collision_filter) const;
     [[nodiscard]] std::span<const contact_event> contact_events() const;
 

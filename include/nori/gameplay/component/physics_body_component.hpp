@@ -1,9 +1,9 @@
 #pragma once
-
 #include <optional>
 #include <vector>
 
 #include <nori/gameplay/component/component.hpp>
+#include <nori/physics2d/body.hpp>
 #include <nori/physics2d/collider.hpp>
 
 namespace nori::gameplay
@@ -19,8 +19,6 @@ struct physics_body_config
 
 class physics_body_component final : public core::rtti<physics_body_component, component>
 {
-    friend class world;
-
 public:
     physics_body_component(object& owner, physics_body_config config);
 
@@ -28,7 +26,7 @@ public:
     [[nodiscard]] update_handle pre_physics_update() const;
     [[nodiscard]] std::optional<physics2d::body_velocity> velocity() const;
     bool set_velocity(physics2d::body_velocity value);
-    [[nodiscard]] bool is_grounded(float min_normal_y = 0.5f) const;
+    [[nodiscard]] std::vector<physics2d::contact_point> get_contacts() const;
     bool teleport(physics2d::body_transform pose, bool preserve_velocity = false);
 
 protected:

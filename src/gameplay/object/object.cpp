@@ -1,25 +1,35 @@
 #include <algorithm>
 #include <cassert>
+#include <utility>
 
+#include <nori/core/abort.hpp>
+#include <nori/core/rtti.hpp>
+#include <nori/core/transform.hpp>
 #include <nori/gameplay/object/object.hpp>
 #include <nori/gameplay/world/world.hpp>
 
 namespace nori::gameplay
 {
-object::object(transform pose) :
+object::object(core::transform pose) :
     root_{&add_component<scene_component>(pose)}
 {
 }
 
-::nori::gameplay::world& object::world()
+gameplay::world& object::world()
 {
-    assert(world_);
+    if (!world_)
+    {
+        core::abort("object is not attached to a world");
+    }
     return *world_;
 }
 
-const ::nori::gameplay::world& object::world() const
+const gameplay::world& object::world() const
 {
-    assert(world_);
+    if (!world_)
+    {
+        core::abort("object is not attached to a world");
+    }
     return *world_;
 }
 
@@ -83,7 +93,7 @@ update_scheduler& object::registration_scheduler()
     return *scheduler;
 }
 
-void object::attach_to_world(::nori::gameplay::world& active, object_handle handle)
+void object::attach_to_world(gameplay::world& active, object_handle handle)
 {
     if (world_ || active.find_object(handle) != this)
     {

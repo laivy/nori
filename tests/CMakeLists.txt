@@ -17,6 +17,7 @@ if (TARGET nori::core)
             core/rtti_test.cpp
             core/slot_map_test.cpp
             core/timer_test.cpp
+            core/transform_test.cpp
             core/vector_test.cpp
             core/windows_application_test.cpp
     )
@@ -171,7 +172,15 @@ endif ()
 
 if (TARGET nori::gameplay)
     nori_add_test(nori_gameplay_tests nori::gameplay unit
-        SOURCES gameplay/framework_test.cpp)
+        SOURCES
+            gameplay/component_test.cpp
+            gameplay/game_instance_test.cpp
+            gameplay/object_test.cpp
+            gameplay/physics_body_component_test.cpp
+            gameplay/scene_component_test.cpp
+            gameplay/update_scheduler_test.cpp
+            gameplay/world_test.cpp
+    )
 endif ()
 
 if (TARGET nori_cli_core)

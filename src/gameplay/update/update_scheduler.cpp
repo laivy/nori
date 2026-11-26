@@ -3,9 +3,9 @@
 #include <functional>
 #include <queue>
 #include <utility>
+#include <vector>
 
 #include <nori/core/abort.hpp>
-
 #include <nori/gameplay/update/update_scheduler.hpp>
 
 namespace

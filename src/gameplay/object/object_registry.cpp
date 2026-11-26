@@ -1,40 +1,28 @@
-#include <atomic>
-#include <limits>
 #include <utility>
 
 #include <nori/core/abort.hpp>
 
 #include <nori/gameplay/object/object_registry.hpp>
 
-namespace
-{
-std::atomic<std::uint64_t> next_registry_id{1};
-}
-
 namespace nori::gameplay
 {
-object_registry::object_registry() :
-    id_{next_registry_id.fetch_add(1, std::memory_order_relaxed)}
+object_registry::object_registry(std::uint64_t world_id) :
+    id_{world_id}
 {
     if (id_ == 0)
     {
-        core::abort("object registry identifier exhausted");
+        core::abort("invalid world identifier");
     }
 }
 
 object_registry::slot_handle object_registry::resolve(object_handle handle) const
 {
-    if (handle.world_id != id_ || handle.slot >= std::numeric_limits<std::uint32_t>::max() || handle.generation > std::numeric_limits<std::uint32_t>::max())
-    {
-        return {};
-    }
-    const slot_handle key{static_cast<std::uint32_t>(handle.slot + 1), static_cast<std::uint32_t>(handle.generation)};
-    return objects_.contains(key) ? key : slot_handle{};
+    return handle.world_id == id_ && objects_.contains(handle.slot) ? handle.slot : slot_handle{};
 }
 
 object_handle object_registry::make_handle(slot_handle handle) const
 {
-    return {id_, handle.index - 1, handle.generation};
+    return {id_, handle};
 }
 
 object_handle object_registry::insert(std::unique_ptr<object> value)

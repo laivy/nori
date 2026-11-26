@@ -1,5 +1,7 @@
 #include <cmath>
 
+#include <nori/core/abort.hpp>
+#include <nori/core/transform.hpp>
 #include <nori/gameplay/component/scene_component.hpp>
 #include <nori/gameplay/object/object.hpp>
 
@@ -26,9 +28,9 @@ value_type select_transform(nori::gameplay::attachment_rule rule, value_type rel
 
 namespace nori::gameplay
 {
-scene_component::scene_component(object& owner, transform pose) :
+scene_component::scene_component(object& owner, core::transform pose) :
     rtti{owner},
-    relative_{transform::identity}
+    relative_{core::transform::identity}
 {
     if (!set_relative_transform(pose))
     {
@@ -36,12 +38,12 @@ scene_component::scene_component(object& owner, transform pose) :
     }
 }
 
-const transform& scene_component::relative_transform() const
+const core::transform& scene_component::relative_transform() const
 {
     return relative_;
 }
 
-transform scene_component::world_transform() const
+core::transform scene_component::world_transform() const
 {
     return parent_ ? compose_transform(parent_->world_transform(), relative_) : relative_;
 }
@@ -51,7 +53,7 @@ const scene_component* scene_component::parent() const
     return parent_;
 }
 
-bool scene_component::set_relative_transform(transform pose)
+bool scene_component::set_relative_transform(core::transform pose)
 {
     const auto& scale{pose.scale};
     const auto& r{pose.rotation};
@@ -82,7 +84,7 @@ bool scene_component::attach_to_component(scene_component& parent, attachment_ru
         return true;
     }
     const auto relative_world{relative_to(world_transform(), parent.world_transform())};
-    if (!set_relative_transform({select_transform(rules.position, relative_.position, relative_world.position, transform::identity.position), select_transform(rules.rotation, relative_.rotation, relative_world.rotation, transform::identity.rotation), select_transform(rules.scale, relative_.scale, relative_world.scale, transform::identity.scale)}))
+    if (!set_relative_transform({select_transform(rules.position, relative_.position, relative_world.position, core::transform::identity.position), select_transform(rules.rotation, relative_.rotation, relative_world.rotation, core::transform::identity.rotation), select_transform(rules.scale, relative_.scale, relative_world.scale, core::transform::identity.scale)}))
     {
         return false;
     }

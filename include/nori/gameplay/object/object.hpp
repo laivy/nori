@@ -1,5 +1,4 @@
 #pragma once
-
 #include <concepts>
 #include <deque>
 #include <memory>
@@ -9,18 +8,26 @@
 
 #include <nori/core/abort.hpp>
 #include <nori/core/rtti.hpp>
-
+#include <nori/core/transform.hpp>
+#include <nori/gameplay/component/component.hpp>
 #include <nori/gameplay/component/scene_component.hpp>
 #include <nori/gameplay/object/object_handle.hpp>
+#include <nori/gameplay/update/update_group.hpp>
+#include <nori/gameplay/update/update_handle.hpp>
+#include <nori/gameplay/update/update_scheduler.hpp>
 
 namespace nori::gameplay
 {
 class world;
+class object_registry;
 
 class object : public core::rtti<object>
 {
+    friend class world;
+    friend class object_registry;
+
 public:
-    explicit object(transform pose = transform::identity);
+    explicit object(core::transform pose = core::transform::identity);
     virtual ~object() = default;
 
     object(const object&) = delete;
@@ -28,8 +35,8 @@ public:
     object(object&&) = delete;
     object& operator=(object&&) = delete;
 
-    [[nodiscard]] ::nori::gameplay::world& world();
-    [[nodiscard]] const ::nori::gameplay::world& world() const;
+    [[nodiscard]] gameplay::world& world();
+    [[nodiscard]] const gameplay::world& world() const;
     [[nodiscard]] object_handle handle() const;
 
     [[nodiscard]] scene_component& root_component();
@@ -92,10 +99,6 @@ public:
     [[nodiscard]] bool contains_component(const component& value) const;
     [[nodiscard]] bool is_registered() const noexcept;
 
-    void attach_to_world(::nori::gameplay::world& active, object_handle handle);
-    void detach_from_world();
-    void finish_update();
-
 protected:
     virtual void on_register()
     {
@@ -120,6 +123,10 @@ protected:
     bool remove_update_prerequisite(update_handle target, update_handle prerequisite);
 
 private:
+    void attach_to_world(gameplay::world& active, object_handle handle);
+    void detach_from_world();
+    void finish_update();
+
     template <typename component_type, typename object_type>
     static auto collect_components(object_type& object)
     {
@@ -142,7 +149,7 @@ private:
     [[nodiscard]] update_scheduler* active_scheduler() const;
     update_scheduler& registration_scheduler();
 
-    ::nori::gameplay::world* world_{};
+    gameplay::world* world_{};
     object_handle handle_{};
     bool unregistering_components_{};
     bool notifying_component_removal_{};

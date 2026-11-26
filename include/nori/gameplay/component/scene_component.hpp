@@ -1,7 +1,6 @@
 #pragma once
-
+#include <nori/core/transform.hpp>
 #include <nori/gameplay/component/component.hpp>
-#include <nori/gameplay/transform.hpp>
 
 namespace nori::gameplay
 {
@@ -32,17 +31,17 @@ enum class detachment_rule
 class scene_component : public core::rtti<scene_component, component>
 {
 public:
-    explicit scene_component(object& owner, transform pose = transform::identity);
+    explicit scene_component(object& owner, core::transform pose = core::transform::identity);
 
-    [[nodiscard]] const transform& relative_transform() const;
-    [[nodiscard]] transform world_transform() const;
+    [[nodiscard]] const core::transform& relative_transform() const;
+    [[nodiscard]] core::transform world_transform() const;
     [[nodiscard]] const scene_component* parent() const;
-    bool set_relative_transform(transform pose);
+    bool set_relative_transform(core::transform pose);
     bool attach_to_component(scene_component& parent, attachment_rules rules);
     bool detach_from_component(detachment_rule rule);
 
 private:
-    transform relative_;
+    core::transform relative_;
     scene_component* parent_{};
 };
 } // namespace nori::gameplay

@@ -1,6 +1,6 @@
 #include <cmath>
 
-#include <nori/gameplay/transform.hpp>
+#include <nori/core/transform.hpp>
 
 namespace
 {
@@ -30,9 +30,9 @@ nori::core::vec3 rotate(nori::core::vec4 rotation, nori::core::vec3 v)
 }
 } // namespace
 
-namespace nori::gameplay
+namespace nori::core
 {
-core::vec4 axis_rotation(core::vec3 axis, float radians)
+vec4 axis_rotation(vec3 axis, float radians)
 {
     const auto sine{std::sin(radians * 0.5f)};
     return {axis.x * sine, axis.y * sine, axis.z * sine, std::cos(radians * 0.5f)};
@@ -49,7 +49,7 @@ transform compose_transform(const transform& parent, const transform& relative)
 
 transform relative_to(const transform& world, const transform& parent)
 {
-    const core::vec4 inverse{-parent.rotation.x, -parent.rotation.y, -parent.rotation.z, parent.rotation.w};
+    const vec4 inverse{-parent.rotation.x, -parent.rotation.y, -parent.rotation.z, parent.rotation.w};
     return {
         quotient(rotate(inverse, world.position - parent.position), parent.scale),
         product(inverse, world.rotation),
@@ -57,7 +57,7 @@ transform relative_to(const transform& world, const transform& parent)
     };
 }
 
-core::mat4 transform_matrix(const transform& pose)
+mat4 transform_matrix(const transform& pose)
 {
     const auto x{rotate(pose.rotation, {pose.scale.x, 0.0f, 0.0f})};
     const auto y{rotate(pose.rotation, {0.0f, pose.scale.y, 0.0f})};
@@ -69,4 +69,4 @@ core::mat4 transform_matrix(const transform& pose)
         pose.position.x, pose.position.y, pose.position.z, 1.0f
     };
 }
-} // namespace nori::gameplay
+} // namespace nori::core

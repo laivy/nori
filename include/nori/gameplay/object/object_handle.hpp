@@ -1,17 +1,20 @@
 #pragma once
-
-#include <cstddef>
 #include <cstdint>
+
+#include <nori/core/handle.hpp>
+
+namespace nori::gameplay::detail
+{
+struct object_tag;
+}
 
 namespace nori::gameplay
 {
 struct object_handle
 {
+    [[nodiscard]] bool operator==(const object_handle&) const noexcept = default;
+
     std::uint64_t world_id;
-    std::size_t slot;
-    std::uint64_t generation;
-
-    bool operator==(const object_handle&) const = default;
+    core::basic_handle<detail::object_tag> slot;
 };
-
 } // namespace nori::gameplay
