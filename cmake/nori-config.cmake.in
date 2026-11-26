@@ -1,0 +1,110 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+if (@nori_build_core@ OR @nori_build_io@)
+    find_dependency(Threads)
+endif ()
+
+include("${CMAKE_CURRENT_LIST_DIR}/nori-targets.cmake")
+
+set(nori_installed_modules @nori_enabled_modules@)
+list(GET nori_installed_modules 0 nori_first_module)
+get_target_property(nori_installed_configurations nori::${nori_first_module} IMPORTED_CONFIGURATIONS)
+
+function(nori_import_static_dependency target file_name)
+    if (TARGET ${target})
+        return()
+    endif ()
+    add_library(${target} STATIC IMPORTED)
+    foreach (config IN ITEMS Debug Release MinSizeRel)
+        string(TOUPPER "${config}" config_upper)
+        if (config_upper IN_LIST nori_installed_configurations)
+            set_and_check(library "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/${config}/${file_name}")
+            set_property(TARGET ${target} APPEND PROPERTY IMPORTED_CONFIGURATIONS "${config_upper}")
+            set_property(TARGET ${target} PROPERTY IMPORTED_LOCATION_${config_upper} "${library}")
+        endif ()
+    endforeach ()
+endfunction ()
+
+if (@nori_build_asset@ AND WIN32)
+    nori_import_static_dependency(nori::asset_directxtex DirectXTex.lib)
+    if (NOT TARGET nori::asset_dxcompiler)
+        set_and_check(nori_dxcompiler_implib "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/dxcompiler.lib")
+        set_and_check(nori_dxcompiler_dll "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_BINDIR@/dxcompiler.dll")
+        add_library(nori::asset_dxcompiler SHARED IMPORTED)
+        set_target_properties(nori::asset_dxcompiler PROPERTIES
+            IMPORTED_IMPLIB "${nori_dxcompiler_implib}"
+            IMPORTED_LOCATION "${nori_dxcompiler_dll}"
+        )
+    endif ()
+endif ()
+
+if (@nori_build_graphics@)
+    nori_import_static_dependency(nori::directx_guids DirectX-Guids.lib)
+endif ()
+
+if (@nori_build_physics@)
+    nori_import_static_dependency(nori::physics_box2d "@CMAKE_STATIC_LIBRARY_PREFIX@nori-box2d@CMAKE_STATIC_LIBRARY_SUFFIX@")
+    if (UNIX AND NOT APPLE)
+        set_property(TARGET nori::physics_box2d APPEND PROPERTY INTERFACE_LINK_LIBRARIES m)
+    endif ()
+endif ()
+
+set(nori_supported_components core io resource asset graphics physics gameplay imgui)
+foreach (nori_component IN LISTS nori_supported_components)
+    if (nori_component STREQUAL imgui)
+        set(nori_component_target nori::graphics::imgui)
+    else ()
+        set(nori_component_target nori::${nori_component})
+    endif ()
+    if (TARGET ${nori_component_target})
+        set(nori_${nori_component}_FOUND TRUE)
+    else ()
+        set(nori_${nori_component}_FOUND FALSE)
+    endif ()
+endforeach ()
+
+foreach (nori_component IN LISTS nori_FIND_COMPONENTS)
+    if (NOT nori_component IN_LIST nori_supported_components)
+        set(nori_${nori_component}_FOUND FALSE)
+        set(nori_NOT_FOUND_MESSAGE "Unsupported nori component: ${nori_component}")
+    endif ()
+endforeach ()
+
+list(TRANSFORM nori_installed_modules
+    PREPEND "nori::"
+    OUTPUT_VARIABLE nori_config_targets
+)
+
+list(APPEND nori_config_targets
+    nori::imgui
+    nori::graphics::imgui
+    nori::asset_directxtex
+    nori::directx_guids
+    nori::physics_box2d
+)
+
+foreach (nori_target IN LISTS nori_config_targets)
+    if (TARGET ${nori_target})
+        set_target_properties(${nori_target} PROPERTIES
+            MAP_IMPORTED_CONFIG_DEBUG Debug
+            MAP_IMPORTED_CONFIG_RELEASE Release
+            MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
+            MAP_IMPORTED_CONFIG_MINSIZEREL "MinSizeRel;Release"
+        )
+    endif ()
+endforeach ()
+
+unset(nori_component)
+unset(nori_component_target)
+unset(nori_supported_components)
+unset(nori_target)
+unset(nori_config_targets)
+unset(nori_installed_modules)
+unset(nori_first_module)
+unset(nori_installed_configurations)
+unset(nori_dxcompiler_implib)
+unset(nori_dxcompiler_dll)
+
+check_required_components(nori)
