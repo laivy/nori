@@ -178,7 +178,7 @@ public:
     std::uint64_t id;
     core::slot_map<core::basic_handle<detail::body_tag>, body_entry> bodies;
     b2WorldId world;
-    std::unordered_map<std::uint64_t, collider_ref> colliders;
+    std::unordered_map<std::uint64_t, collider_handle> colliders;
     std::map<contact_key, contact_event> active_contacts;
     std::vector<contact_event> events;
     std::vector<contact_event> removed_contacts;
@@ -331,7 +331,7 @@ bool scene::add_box_collider(const box_collider_desc& desc)
         return false;
     }
     const auto key{b2StoreShapeId(shape)};
-    impl_->colliders.emplace(key, collider_ref{desc.body, entry.shapes.size()});
+    impl_->colliders.emplace(key, collider_handle{desc.body, entry.shapes.size()});
     entry.shapes.push_back(key);
     impl::apply_dynamic_mass(entry);
     return true;

@@ -43,7 +43,7 @@ struct box_collider_config
     std::optional<box_collider_settings> settings;
 };
 
-struct collider_ref
+struct collider_handle
 {
     body_handle body;
     std::size_t index;
@@ -51,8 +51,8 @@ struct collider_ref
 
 struct contact_point
 {
-    collider_ref self;
-    collider_ref other;
+    collider_handle self;
+    collider_handle other;
     // World-space contact anchor on self.
     core::vec2 point;
     // Unit normal pointing from other to self.
@@ -79,15 +79,15 @@ enum class contact_phase
 
 struct contact_event
 {
-    collider_ref first;
-    collider_ref second;
+    collider_handle first;
+    collider_handle second;
     contact_kind kind;
     contact_phase phase;
 };
 
 struct ray_hit
 {
-    collider_ref collider;
+    collider_handle collider;
     core::vec2 point;
     core::vec2 normal;
     float fraction;

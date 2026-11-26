@@ -6,7 +6,7 @@
 
 namespace
 {
-bool is_same_collider(nori::physics2d::collider_ref left, nori::physics2d::collider_ref right)
+bool is_same_collider(nori::physics2d::collider_handle left, nori::physics2d::collider_handle right)
 {
     return left.body == right.body && left.index == right.index;
 }

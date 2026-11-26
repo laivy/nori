@@ -77,8 +77,8 @@ private:
 
     struct active_trigger
     {
-        physics2d::collider_ref sensor;
-        physics2d::collider_ref visitor;
+        physics2d::collider_handle sensor;
+        physics2d::collider_handle visitor;
         trigger_changed event;
     };
 
