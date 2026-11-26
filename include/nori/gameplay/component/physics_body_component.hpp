@@ -26,7 +26,7 @@ public:
     [[nodiscard]] update_handle pre_physics_update() const;
     [[nodiscard]] std::optional<physics2d::body_velocity> velocity() const;
     bool set_velocity(physics2d::body_velocity value);
-    [[nodiscard]] std::vector<physics2d::contact_point> get_contacts() const;
+    [[nodiscard]] std::vector<physics2d::contact_point> contacts() const;
     bool teleport(physics2d::body_transform pose, bool preserve_velocity = false);
 
 protected:

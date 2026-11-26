@@ -39,7 +39,7 @@ update_handle physics_body_component::pre_physics_update() const
 
 std::optional<physics2d::body_velocity> physics_body_component::velocity() const
 {
-    return is_registered() ? owner().world().physics_scene().get_velocity(body_) : std::nullopt;
+    return is_registered() ? owner().world().physics_scene().velocity(body_) : std::nullopt;
 }
 
 bool physics_body_component::set_velocity(physics2d::body_velocity value)
@@ -47,9 +47,9 @@ bool physics_body_component::set_velocity(physics2d::body_velocity value)
     return is_registered() && owner().world().physics_scene().set_velocity(body_, value);
 }
 
-std::vector<physics2d::contact_point> physics_body_component::get_contacts() const
+std::vector<physics2d::contact_point> physics_body_component::contacts() const
 {
-    return is_registered() && !teleported_ && !pending_teleport_ ? owner().world().physics_scene().get_contacts(body_) : std::vector<physics2d::contact_point>{};
+    return is_registered() && !teleported_ && !pending_teleport_ ? owner().world().physics_scene().contacts(body_) : std::vector<physics2d::contact_point>{};
 }
 
 bool physics_body_component::teleport(physics2d::body_transform pose, bool preserve_velocity)
@@ -122,7 +122,7 @@ void physics_body_component::on_post_physics_update(float)
     if (config_.type != physics2d::body_type::static_body || teleported_)
     {
         auto& root{owner().root_component()};
-        const auto body_transform{config_.type == physics2d::body_type::static_body ? std::optional{static_pose_} : owner().world().physics_scene().get_transform(body_)};
+        const auto body_transform{config_.type == physics2d::body_type::static_body ? std::optional{static_pose_} : owner().world().physics_scene().transform(body_)};
         if (body_transform)
         {
             auto pose{root.relative_transform()};

@@ -12,7 +12,7 @@ namespace
 {
 bool has_contact_normal(const nori::physics2d::scene& world, nori::physics2d::body_handle body, nori::core::vec2 direction)
 {
-    return std::ranges::any_of(world.get_contacts(body), [&](const auto& contact)
+    return std::ranges::any_of(world.contacts(body), [&](const auto& contact)
     {
         return contact.normal.x * direction.x + contact.normal.y * direction.y > 0.5f &&
             contact.relative_velocity.x * contact.normal.x + contact.relative_velocity.y * contact.normal.y <= 0.01f &&
@@ -35,24 +35,24 @@ TEST(physics2d_scene_test, body_motion)
     ASSERT_FALSE(world.apply_force(platform, {60.0f, 0.0f})) << "kinematic body rejects force";
     ASSERT_FALSE(world.apply_linear_impulse(ground, {2.0f, 0.0f})) << "static body rejects impulse";
     ASSERT_TRUE(world.apply_linear_impulse(falling, {2.0f, 0.0f})) << "dynamic body accepts impulse";
-    EXPECT_NEAR(world.get_velocity(falling).value().linear.x, 2.0f, 0.001f) << "impulse changes velocity immediately";
+    EXPECT_NEAR(world.velocity(falling).value().linear.x, 2.0f, 0.001f) << "impulse changes velocity immediately";
     ASSERT_TRUE(world.apply_force(falling, {60.0f, 0.0f})) << "dynamic body accepts force";
 
     world.step(1.0f / 60.0f);
 
-    const nori::physics2d::body_transform ground_pose{world.get_transform(ground).value()};
+    const nori::physics2d::body_transform ground_pose{world.transform(ground).value()};
     EXPECT_NEAR(ground_pose.position.x, 2.0f, 0.001f) << "static body stays at its assigned transform";
     EXPECT_NEAR(ground_pose.position.y, 1.0f, 0.001f) << "static body stays at its assigned transform";
     EXPECT_NEAR(ground_pose.angle_radians, 0.5f, 0.001f) << "static body stays at its assigned transform";
-    const nori::physics2d::body_transform platform_pose{world.get_transform(platform).value()};
+    const nori::physics2d::body_transform platform_pose{world.transform(platform).value()};
     EXPECT_NEAR(platform_pose.position.x, 0.1f, 0.001f) << "kinematic body advances one 60 Hz tick";
     EXPECT_NEAR(platform_pose.position.y, 3.0f, 0.001f) << "kinematic body advances one 60 Hz tick";
-    ASSERT_LT(world.get_transform(falling).value().position.y, 3.0f) << "gravity lowers the shapeless dynamic body";
-    EXPECT_NEAR(world.get_velocity(falling).value().linear.x, 3.0f, 0.001f) << "force changes velocity over one tick";
+    ASSERT_LT(world.transform(falling).value().position.y, 3.0f) << "gravity lowers the shapeless dynamic body";
+    EXPECT_NEAR(world.velocity(falling).value().linear.x, 3.0f, 0.001f) << "force changes velocity over one tick";
 
     ASSERT_TRUE(world.set_velocity(platform, {{-3.0f, 0.0f}, 3.0f})) << "kinematic body accepts linear and angular velocity";
     world.step(1.0f / 60.0f);
-    const nori::physics2d::body_transform updated_pose{world.get_transform(platform).value()};
+    const nori::physics2d::body_transform updated_pose{world.transform(platform).value()};
     EXPECT_NEAR(updated_pose.position.x, 0.05f, 0.001f) << "updated velocity changes position and angle";
     EXPECT_NEAR(updated_pose.angle_radians, 0.05f, 0.001f) << "updated velocity changes position and angle";
 }
@@ -62,13 +62,13 @@ TEST(physics2d_scene_test, step_interval)
     nori::physics2d::scene world;
     const nori::physics2d::body_handle body{world.create_body({nori::physics2d::body_type::kinematic_body, {{}, 0.0f}, {{6.0f, 0.0f}, 0.0f}})};
     world.step(1.0f / 30.0f);
-    EXPECT_NEAR(world.get_transform(body).value().position.x, 0.2f, 0.001f) << "step advances by the supplied interval";
+    EXPECT_NEAR(world.transform(body).value().position.x, 0.2f, 0.001f) << "step advances by the supplied interval";
 
     world.step(0.0f);
     world.step(-1.0f);
     world.step(std::numeric_limits<float>::infinity());
     world.step(std::numeric_limits<float>::quiet_NaN());
-    EXPECT_NEAR(world.get_transform(body).value().position.x, 0.2f, 0.001f) << "invalid intervals leave the world unchanged";
+    EXPECT_NEAR(world.transform(body).value().position.x, 0.2f, 0.001f) << "invalid intervals leave the world unchanged";
 }
 
 TEST(physics2d_scene_test, box_collision)
@@ -87,8 +87,8 @@ TEST(physics2d_scene_test, box_collision)
             begins += event.kind == nori::physics2d::contact_kind::contact && event.phase == nori::physics2d::contact_phase::begin;
         }
     }
-    const nori::physics2d::body_transform pose{world.get_transform(falling).value()};
-    const nori::physics2d::body_velocity velocity{world.get_velocity(falling).value()};
+    const nori::physics2d::body_transform pose{world.transform(falling).value()};
+    const nori::physics2d::body_velocity velocity{world.velocity(falling).value()};
     EXPECT_NEAR(pose.position.y, 1.0f, 0.05f) << "dynamic box rests on ground";
     EXPECT_NEAR(velocity.linear.y, 0.0f, 0.05f) << "dynamic box stops on ground";
     ASSERT_EQ(begins, 1) << "collision did not begin exactly once";
@@ -103,7 +103,7 @@ TEST(physics2d_scene_test, collider_configuration)
     settings.filter = {2, 4};
     ASSERT_TRUE(world.add_box_collider({with_override, {0.5f, 0.5f}, {2.0f, 0.0f}, settings})) << "configured collider rejected";
     ASSERT_TRUE(world.apply_linear_impulse(with_override, {8.0f, 0.0f})) << "adding a collider changed the explicit mass";
-    EXPECT_NEAR(world.get_velocity(with_override).value().linear.x, 1.0f, 0.001f) << "adding a collider changed the explicit mass";
+    EXPECT_NEAR(world.velocity(with_override).value().linear.x, 1.0f, 0.001f) << "adding a collider changed the explicit mass";
     const auto hit{world.cast_ray({2.0f, 2.0f}, {0.0f, -4.0f}, {4, 2})};
     ASSERT_TRUE(hit) << "ray missed the offset collider";
     ASSERT_EQ(hit->collider.body, with_override) << "ray missed the offset collider";
@@ -117,13 +117,13 @@ TEST(physics2d_scene_test, collider_configuration)
     const auto density_body{world.create_body({.type = nori::physics2d::body_type::dynamic_body, .transform = {{8.0f, 0.0f}, 0.0f}})};
     ASSERT_TRUE(world.add_box_collider({density_body, {0.5f, 0.5f}, {}, settings})) << "density collider rejected";
     ASSERT_TRUE(world.apply_linear_impulse(density_body, {2.0f, 0.0f})) << "density does not determine dynamic mass";
-    EXPECT_NEAR(world.get_velocity(density_body).value().linear.x, 1.0f, 0.001f) << "density does not determine dynamic mass";
+    EXPECT_NEAR(world.velocity(density_body).value().linear.x, 1.0f, 0.001f) << "density does not determine dynamic mass";
 
     settings.is_sensor = true;
     const auto sensor_body{world.create_body({.type = nori::physics2d::body_type::dynamic_body, .transform = {{10.0f, 0.0f}, 0.0f}})};
     ASSERT_TRUE(world.add_box_collider({sensor_body, {0.5f, 0.5f}, {}, settings})) << "sensor-only body lost its default dynamic mass";
     ASSERT_TRUE(world.apply_linear_impulse(sensor_body, {1.0f, 0.0f})) << "sensor-only body lost its default dynamic mass";
-    EXPECT_NEAR(world.get_velocity(sensor_body).value().linear.x, 1.0f, 0.001f) << "sensor-only body lost its default dynamic mass";
+    EXPECT_NEAR(world.velocity(sensor_body).value().linear.x, 1.0f, 0.001f) << "sensor-only body lost its default dynamic mass";
 
     const nori::physics2d::box_collider_config boxes[]{{{0.5f, 0.5f}, {}, {}}, {{}, {}, {}}};
     ASSERT_FALSE(world.contains(world.create_body({.type = nori::physics2d::body_type::static_body, .transform = {{12.0f, 0.0f}, 0.0f}}, boxes))) << "failed body creation left a collider in the scene";
@@ -156,8 +156,8 @@ TEST(physics2d_scene_test, triggers)
         ASSERT_EQ(event.first.body, sensor) << "invalid trigger begin data";
         ASSERT_EQ(event.second.body, visitor) << "invalid trigger begin data";
     }
-    EXPECT_TRUE(world.get_contacts(visitor).empty()) << "sensor affected physical motion";
-    EXPECT_NEAR(world.get_transform(visitor).value().position.x, 0.0f, 0.001f) << "sensor affected physical motion";
+    EXPECT_TRUE(world.contacts(visitor).empty()) << "sensor affected physical motion";
+    EXPECT_NEAR(world.transform(visitor).value().position.x, 0.0f, 0.001f) << "sensor affected physical motion";
     ASSERT_TRUE(world.set_transform(visitor, {{0.8f, 0.0f}, 0.0f})) << "could not leave one sensor";
     world.step(step);
     const auto first_end{world.contact_events()};
@@ -194,7 +194,7 @@ TEST(physics2d_scene_test, box_collider_validation)
     ASSERT_TRUE(world.add_box_collider({body, {1.0f, 0.5f}})) << "first collider can be added";
     ASSERT_TRUE(world.add_box_collider({body, {1.0f, 0.5f}})) << "multiple colliders can be added";
     ASSERT_TRUE(world.apply_linear_impulse(body, {4.0f, 0.0f})) << "impulse applies to body with colliders";
-    EXPECT_NEAR(world.get_velocity(body).value().linear.x, 1.0f, 0.001f) << "collider areas determine dynamic mass";
+    EXPECT_NEAR(world.velocity(body).value().linear.x, 1.0f, 0.001f) << "collider areas determine dynamic mass";
     ASSERT_TRUE(world.destroy_body(body)) << "body with colliders can be destroyed";
     ASSERT_FALSE(world.add_box_collider({body, {1.0f, 1.0f}})) << "destroyed handle is rejected";
 }
@@ -209,13 +209,13 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
     ASSERT_TRUE(world.add_box_collider({ground, {5.0f, 0.5f}})) << "colliders created";
     ASSERT_TRUE(world.add_box_collider({body, {0.5f, 0.5f}})) << "colliders created";
     ASSERT_FALSE(has_contact_normal(world, body, {0.0f, 1.0f})) << "airborne and invalid bodies are not grounded";
-    EXPECT_TRUE(world.get_contacts({}).empty()) << "airborne and invalid bodies are not grounded";
+    EXPECT_TRUE(world.contacts({}).empty()) << "airborne and invalid bodies are not grounded";
     for (int i{}; i < 120; ++i)
     {
         world.step(1.0f / 60.0f);
     }
     ASSERT_TRUE(has_contact_normal(world, body, {0.0f, 1.0f}));
-    const auto points{world.get_contacts(body)};
+    const auto points{world.contacts(body)};
     ASSERT_FALSE(points.empty());
     EXPECT_EQ(points.front().self.body, body);
     EXPECT_EQ(points.front().other.body, ground);
@@ -225,9 +225,9 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
         world.step(1.0f / 60.0f);
     }
     ASSERT_FALSE(has_contact_normal(world, body, {0.0f, 1.0f})) << "jump leaves the ground";
-    EXPECT_NEAR(world.get_transform(body).value().angle_radians, 0.0f, 0.001f) << "locked body does not rotate";
+    EXPECT_NEAR(world.transform(body).value().angle_radians, 0.0f, 0.001f) << "locked body does not rotate";
     ASSERT_TRUE(world.destroy_body(body)) << "destroyed body is not grounded";
-    EXPECT_TRUE(world.get_contacts(body).empty());
+    EXPECT_TRUE(world.contacts(body).empty());
 
     nori::physics2d::scene wall_world;
     ASSERT_TRUE(wall_world.set_gravity({})) << "zero gravity is accepted";
@@ -239,7 +239,7 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
     {
         wall_world.step(1.0f / 60.0f);
     }
-    EXPECT_TRUE(std::ranges::any_of(wall_world.get_contacts(moving), [](const auto& point) { return point.normal.x < -0.5f; }));
+    EXPECT_TRUE(std::ranges::any_of(wall_world.contacts(moving), [](const auto& point) { return point.normal.x < -0.5f; }));
     EXPECT_FALSE(has_contact_normal(wall_world, moving, {0.0f, 1.0f}));
     nori::physics2d::scene ceiling_world;
     ASSERT_TRUE(ceiling_world.set_gravity({})) << "zero gravity is accepted for ceiling test";
@@ -251,9 +251,9 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
     {
         ceiling_world.step(1.0f / 60.0f);
     }
-    EXPECT_TRUE(std::ranges::any_of(ceiling_world.get_contacts(rising), [](const auto& point) { return point.normal.y < -0.5f; }));
+    EXPECT_TRUE(std::ranges::any_of(ceiling_world.contacts(rising), [](const auto& point) { return point.normal.y < -0.5f; }));
     EXPECT_FALSE(has_contact_normal(ceiling_world, rising, {0.0f, 1.0f}));
-    ASSERT_LT(ceiling_world.get_transform(rising).value().position.y, -0.95f) << "ceiling contact is not ground";
+    ASSERT_LT(ceiling_world.transform(rising).value().position.y, -0.95f) << "ceiling contact is not ground";
 }
 
 TEST(physics2d_scene_test, handle_lifetime)
@@ -268,7 +268,7 @@ TEST(physics2d_scene_test, handle_lifetime)
     ASSERT_FALSE(first.contains(foreign)) << "foreign handle cannot delete its body";
     ASSERT_FALSE(first.destroy_body(foreign)) << "foreign handle cannot delete its body";
     ASSERT_TRUE(second.contains(foreign)) << "foreign handle cannot delete its body";
-    ASSERT_FALSE(first.get_velocity(foreign)) << "foreign handle cannot access local body";
+    ASSERT_FALSE(first.velocity(foreign)) << "foreign handle cannot access local body";
     ASSERT_FALSE(first.set_transform(foreign, {})) << "foreign handle cannot access local body";
     const nori::physics2d::body_handle invalid_slot{original.scene_id, {}};
     ASSERT_FALSE(first.contains(invalid_slot)) << "invalid public slot is rejected";
@@ -279,7 +279,7 @@ TEST(physics2d_scene_test, handle_lifetime)
     const nori::physics2d::body_handle replacement{first.create_body({})};
     ASSERT_TRUE(first.contains(replacement)) << "replacement has a fresh handle";
     ASSERT_NE(replacement, original) << "replacement has a fresh handle";
-    ASSERT_FALSE(first.get_transform(original)) << "expired handle cannot access replacement";
+    ASSERT_FALSE(first.transform(original)) << "expired handle cannot access replacement";
     ASSERT_FALSE(first.set_velocity(original, {})) << "expired handle cannot access replacement";
     ASSERT_FALSE(first.contains(nori::physics2d::body_handle{})) << "default handle is invalid";
     ASSERT_FALSE(first.apply_force({}, {})) << "default handle is invalid";

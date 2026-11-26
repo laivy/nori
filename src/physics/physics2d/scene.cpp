@@ -337,7 +337,7 @@ bool scene::add_box_collider(const box_collider_desc& desc)
     return true;
 }
 
-std::vector<contact_point> scene::get_contacts(body_handle body) const
+std::vector<contact_point> scene::contacts(body_handle body) const
 {
     std::vector<contact_point> result;
     if (!contains(body))
@@ -391,7 +391,7 @@ std::span<const contact_event> scene::contact_events() const
     return impl_->events;
 }
 
-std::optional<body_transform> scene::get_transform(body_handle body) const
+std::optional<body_transform> scene::transform(body_handle body) const
 {
     if (!contains(body))
     {
@@ -414,7 +414,7 @@ bool scene::set_transform(body_handle body, body_transform transform)
     return true;
 }
 
-std::optional<body_velocity> scene::get_velocity(body_handle body) const
+std::optional<body_velocity> scene::velocity(body_handle body) const
 {
     if (!contains(body))
     {

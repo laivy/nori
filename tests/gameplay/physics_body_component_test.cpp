@@ -87,7 +87,7 @@ TEST(physics_body_component_test, static_body_sync)
     next_pose.rotation = nori::core::axis_rotation({0.0f, 0.0f, 1.0f}, 0.5f);
     ASSERT_TRUE((object.root_component().set_relative_transform(next_pose))) << "static root transform was rejected";
     active.fixed_update(fixed_step);
-    const auto current{active.physics_scene().get_transform(body->body_handle())};
+    const auto current{active.physics_scene().transform(body->body_handle())};
     ASSERT_TRUE((current)) << "static root transform was not applied to physics";
     ASSERT_EQ((current->position.x), (4.0f)) << "static root transform was not applied to physics";
     EXPECT_NEAR(current->angle_radians, 0.5f, 0.001f);
@@ -95,7 +95,7 @@ TEST(physics_body_component_test, static_body_sync)
     active.fixed_update(fixed_step);
     active.fixed_update(fixed_step);
     ASSERT_EQ((object.root_component().relative_transform().position.x), (6.0f)) << "static teleport was reverted by the root transform";
-    ASSERT_EQ((active.physics_scene().get_transform(body->body_handle())->position.x), (6.0f)) << "static teleport was reverted by the root transform";
+    ASSERT_EQ((active.physics_scene().transform(body->body_handle())->position.x), (6.0f)) << "static teleport was reverted by the root transform";
 }
 TEST(physics_body_component_test, contact_query)
 {
@@ -109,18 +109,23 @@ TEST(physics_body_component_test, contact_query)
         nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::dynamic_body, .lock_rotation = true, .colliders = {{{0.5f, 0.5f}, {}, {}}}})};
     auto* body{active.find_object(falling)->find_component<nori::gameplay::physics_body_component>()};
     ASSERT_NE(body, nullptr);
-    EXPECT_TRUE(body->get_contacts().empty());
+    EXPECT_TRUE(body->contacts().empty());
     for (int i{}; i < 120; ++i)
     {
         active.fixed_update(fixed_step);
     }
-    const auto contacts{body->get_contacts()};
+    const auto contacts{body->contacts()};
     ASSERT_FALSE(contacts.empty());
     EXPECT_EQ(contacts.front().other.body, active.find_object(ground)->find_component<nori::gameplay::physics_body_component>()->body_handle());
     EXPECT_GT(contacts.front().normal.y, 0.5f);
     ASSERT_TRUE(body->teleport({{0.0f, 5.0f}, 0.0f}));
-    EXPECT_TRUE(body->get_contacts().empty());
+    EXPECT_TRUE(body->contacts().empty());
     active.fixed_update(fixed_step);
-    EXPECT_TRUE(body->get_contacts().empty());
+    EXPECT_GT(active.find_object(falling)->root_component().world_transform().position.y, 4.0f);
+    for (int i{}; i < 4 && !body->contacts().empty(); ++i)
+    {
+        active.fixed_update(fixed_step);
+    }
+    EXPECT_TRUE(body->contacts().empty());
 }
 } // namespace
