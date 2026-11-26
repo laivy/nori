@@ -2,10 +2,9 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 
 #include <nori/core/vector.hpp>
-#include <nori/physics2d/body.hpp>
+#include <nori/physics2d/body_handle.hpp>
 
 namespace nori::physics2d
 {
@@ -17,30 +16,15 @@ struct collision_filter
 
 inline constexpr collision_filter default_collision_filter{1, ~std::uint64_t{0}};
 
-struct box_collider_settings
+struct box_collider_desc
 {
+    core::vec2 half_extent;
+    core::vec2 center;
     float density;
     float friction;
     float restitution;
     bool is_sensor;
     collision_filter filter;
-};
-
-inline constexpr box_collider_settings default_box_collider_settings{1.0f, 0.6f, 0.0f, false, default_collision_filter};
-
-struct box_collider_desc
-{
-    body_handle body;
-    core::vec2 half_extent;
-    core::vec2 center;
-    std::optional<box_collider_settings> settings;
-};
-
-struct box_collider_config
-{
-    core::vec2 half_extent;
-    core::vec2 center;
-    std::optional<box_collider_settings> settings;
 };
 
 struct collider_handle

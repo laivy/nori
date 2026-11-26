@@ -1,26 +1,14 @@
 #pragma once
 
-#include <cstdint>
 #include <optional>
+#include <span>
 
-#include <nori/core/handle.hpp>
 #include <nori/core/vector.hpp>
-
-namespace nori::physics2d::detail
-{
-struct body_tag;
-}
+#include <nori/physics2d/body_handle.hpp>
+#include <nori/physics2d/collider.hpp>
 
 namespace nori::physics2d
 {
-struct body_handle
-{
-    [[nodiscard]] bool operator==(const body_handle&) const noexcept = default;
-
-    std::uint64_t scene_id;
-    core::basic_handle<detail::body_tag> slot;
-};
-
 enum class body_type
 {
     static_body,
@@ -47,5 +35,7 @@ struct body_desc
     body_velocity velocity;
     bool lock_rotation;
     std::optional<float> mass_override;
+    // Referenced only for the duration of create_body().
+    std::span<const box_collider_desc> colliders;
 };
 } // namespace nori::physics2d

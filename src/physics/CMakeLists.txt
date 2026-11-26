@@ -8,6 +8,7 @@ target_sources(nori_physics
         FILES
             ${PROJECT_SOURCE_DIR}/include/nori/physics2d.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/physics2d/body.hpp
+            ${PROJECT_SOURCE_DIR}/include/nori/physics2d/body_handle.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/physics2d/collider.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/physics2d/scene.hpp
     PRIVATE

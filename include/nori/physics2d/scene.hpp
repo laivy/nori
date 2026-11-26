@@ -25,11 +25,11 @@ public:
     void step(float delta_seconds);
     bool set_gravity(core::vec2 gravity);
 
-    [[nodiscard]] body_handle create_body(const body_desc& desc, std::span<const box_collider_config> colliders = {});
+    [[nodiscard]] body_handle create_body(const body_desc& desc);
     bool destroy_body(body_handle body);
     [[nodiscard]] bool contains(body_handle body) const noexcept;
 
-    bool add_box_collider(const box_collider_desc& desc);
+    bool add_box_collider(body_handle body, const box_collider_desc& desc);
     // Returns the contact manifold data from the physics simulation, not a live overlap query.
     [[nodiscard]] std::vector<contact_point> contacts_of(body_handle body) const;
     [[nodiscard]] std::optional<ray_hit> cast_ray(core::vec2 origin, core::vec2 translation, collision_filter filter = default_collision_filter) const;

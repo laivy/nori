@@ -74,8 +74,7 @@ void physics_body_component::on_register()
     auto& active{owner().world()};
     const auto pose{body_pose(owner().root_component().relative_transform())};
     body_ = active.physics_scene().create_body({config_.type, pose, config_.velocity,
-                                                   config_.lock_rotation, config_.mass_override},
-        config_.colliders);
+        config_.lock_rotation, config_.mass_override, config_.colliders});
     if (!active.physics_scene().contains(body_))
     {
         core::abort("failed to create physics body");

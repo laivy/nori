@@ -14,7 +14,7 @@ struct physics_body_config
     physics2d::body_velocity velocity;
     bool lock_rotation;
     std::optional<float> mass_override;
-    std::vector<physics2d::box_collider_config> colliders;
+    std::vector<physics2d::box_collider_desc> colliders;
 };
 
 class physics_body_component final : public core::rtti<physics_body_component, component>

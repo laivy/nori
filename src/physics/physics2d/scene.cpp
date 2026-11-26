@@ -221,7 +221,7 @@ bool scene::set_gravity(core::vec2 gravity)
     return true;
 }
 
-body_handle scene::create_body(const body_desc& desc, std::span<const box_collider_config> colliders)
+body_handle scene::create_body(const body_desc& desc)
 {
     if (B2_IS_NULL(impl_->world) || !is_finite(desc.transform.position) || !std::isfinite(desc.transform.angle_radians) || !is_finite(desc.velocity.linear) || !std::isfinite(desc.velocity.angular_radians_per_second))
     {
@@ -276,9 +276,9 @@ body_handle scene::create_body(const body_desc& desc, std::span<const box_collid
     entry.mass_override = desc.mass_override;
     impl::apply_dynamic_mass(entry);
     const body_handle body{impl_->id, slot};
-    for (const auto& collider : colliders)
+    for (const auto& collider : desc.colliders)
     {
-        if (!add_box_collider({body, collider.half_extent, collider.center, collider.settings}))
+        if (!add_box_collider(body, collider))
         {
             destroy_body(body);
             return {};
@@ -306,32 +306,31 @@ bool scene::contains(body_handle body) const noexcept
     return body.scene_id == impl_->id && impl_->bodies.contains(body.slot);
 }
 
-bool scene::add_box_collider(const box_collider_desc& desc)
+bool scene::add_box_collider(body_handle body, const box_collider_desc& desc)
 {
-    const auto config{desc.settings.value_or(default_box_collider_settings)};
-    if (!contains(desc.body) || !is_finite(desc.half_extent) || desc.half_extent.x <= 0.0f || desc.half_extent.y <= 0.0f || !is_finite(desc.center) || !is_nonnegative(config.density) || !is_nonnegative(config.friction) || !is_nonnegative(config.restitution))
+    if (!contains(body) || !is_finite(desc.half_extent) || desc.half_extent.x <= 0.0f || desc.half_extent.y <= 0.0f || !is_finite(desc.center) || !is_nonnegative(desc.density) || !is_nonnegative(desc.friction) || !is_nonnegative(desc.restitution))
     {
         return false;
     }
 
     b2ShapeDef settings{b2DefaultShapeDef()};
-    settings.density = config.is_sensor ? 0.0f : config.density;
-    settings.material.friction = config.friction;
-    settings.material.restitution = config.restitution;
-    settings.isSensor = config.is_sensor;
-    settings.filter.categoryBits = config.filter.category_bits;
-    settings.filter.maskBits = config.filter.mask_bits;
-    settings.enableContactEvents = !config.is_sensor;
+    settings.density = desc.is_sensor ? 0.0f : desc.density;
+    settings.material.friction = desc.friction;
+    settings.material.restitution = desc.restitution;
+    settings.isSensor = desc.is_sensor;
+    settings.filter.categoryBits = desc.filter.category_bits;
+    settings.filter.maskBits = desc.filter.mask_bits;
+    settings.enableContactEvents = !desc.is_sensor;
     settings.enableSensorEvents = true;
     const b2Polygon box{b2MakeOffsetBox(desc.half_extent.x, desc.half_extent.y, {desc.center.x, desc.center.y}, b2Rot_identity)};
-    auto& entry{impl_->bodies[desc.body.slot]};
+    auto& entry{impl_->bodies[body.slot]};
     const b2ShapeId shape{b2CreatePolygonShape(entry.id, &settings, &box)};
     if (B2_IS_NULL(shape))
     {
         return false;
     }
     const auto key{b2StoreShapeId(shape)};
-    impl_->colliders.emplace(key, collider_handle{desc.body, entry.shapes.size()});
+    impl_->colliders.emplace(key, collider_handle{body, entry.shapes.size()});
     entry.shapes.push_back(key);
     impl::apply_dynamic_mass(entry);
     return true;
