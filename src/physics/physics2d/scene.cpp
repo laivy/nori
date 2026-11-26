@@ -363,10 +363,13 @@ std::vector<contact_point> scene::contacts_of(body_handle body) const
         for (int j{}; j < contact.manifold.pointCount; ++j)
         {
             const auto& point{contact.manifold.points[j]};
-            const auto velocity_a{b2Body_GetWorldPointVelocity(first, b2OffsetPos(b2Body_GetWorldCenter(first), point.anchorA))};
-            const auto velocity_b{b2Body_GetWorldPointVelocity(second, b2OffsetPos(b2Body_GetWorldCenter(second), point.anchorB))};
+            const auto point_a{b2OffsetPos(b2Body_GetWorldCenter(first), point.anchorA)};
+            const auto point_b{b2OffsetPos(b2Body_GetWorldCenter(second), point.anchorB)};
+            const auto position{is_first ? point_a : point_b};
+            const auto velocity_a{b2Body_GetWorldPointVelocity(first, point_a)};
+            const auto velocity_b{b2Body_GetWorldPointVelocity(second, point_b)};
             const auto relative_velocity{is_first ? b2Sub(velocity_a, velocity_b) : b2Sub(velocity_b, velocity_a)};
-            result.push_back({self->second, other->second, {normal.x, normal.y}, {relative_velocity.x, relative_velocity.y}, point.separation, point.totalNormalImpulse});
+            result.push_back({self->second, other->second, {static_cast<float>(position.x), static_cast<float>(position.y)}, {normal.x, normal.y}, {relative_velocity.x, relative_velocity.y}, point.separation, point.normalImpulse, point.totalNormalImpulse});
         }
     }
     return result;
@@ -410,7 +413,10 @@ bool scene::set_transform(body_handle body, body_transform transform)
         return false;
     }
 
-    b2Body_SetTransform(impl_->bodies[body.slot].id, {transform.position.x, transform.position.y}, b2MakeRot(transform.angle_radians));
+    const auto id{impl_->bodies[body.slot].id};
+    b2Body_SetTransform(id, {transform.position.x, transform.position.y}, b2MakeRot(transform.angle_radians));
+    b2Body_SetAwake(id, true);
+    b2Body_WakeTouching(id);
     return true;
 }
 

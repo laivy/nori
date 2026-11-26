@@ -315,6 +315,26 @@ TEST(object_test, cascading_removals)
     EXPECT_EQ(destroyed, 1);
 }
 
+TEST(object_test, duplicate_cascading_destruction)
+{
+    int destroyed{};
+    nori::gameplay::world active;
+    const auto source{active.create_object<tracked_object>(destroyed)};
+    const auto target{active.create_object<tracked_object>(destroyed)};
+    active.find_object(source)->add_component<removal_callback_component>([&]
+    {
+        EXPECT_FALSE(active.destroy_object(target));
+    }, false);
+    active.scheduler().execute_lifecycle([&]
+    {
+        EXPECT_TRUE(active.destroy_object(source));
+        EXPECT_TRUE(active.destroy_object(target));
+    });
+    active.flush_pending_changes();
+    EXPECT_TRUE(active.objects().empty());
+    EXPECT_EQ(destroyed, 2);
+}
+
 class shutdown_creation_object final : public nori::core::rtti<shutdown_creation_object, nori::gameplay::object>
 {
 protected:

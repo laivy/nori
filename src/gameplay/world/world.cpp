@@ -115,11 +115,9 @@ void world::flush_pending_changes()
     {
         while (!pending_destructions_.empty())
         {
-            auto pending{std::exchange(pending_destructions_, {})};
-            for (const auto handle : pending)
-            {
-                destroy_object(handle);
-            }
+            const auto handle{pending_destructions_.front()};
+            pending_destructions_.erase(pending_destructions_.begin());
+            destroy_object(handle);
         }
         changed = false;
         for (const auto handle : objects())

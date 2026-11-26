@@ -20,12 +20,10 @@
 
 namespace nori::gameplay
 {
-class game_instance;
 class physics_body_component;
 
 class world
 {
-    friend class game_instance;
     friend class physics_body_component;
 
 public:
@@ -37,6 +35,8 @@ public:
     world(const world&) = delete;
     world& operator=(const world&) = delete;
 
+    // Registers immediately, even during updates. Scheduled updates join the next execution snapshot.
+    // Physics participation depends on when registration occurs relative to the physics step.
     template <core::rtti_type object_type, typename... arguments>
     requires std::derived_from<object_type, object>
     object_handle create_object(arguments&&... args)
@@ -60,6 +60,8 @@ public:
 
     void update(float delta_seconds);
     void fixed_update(float delta_seconds);
+    // External callbacks must remain alive until their updates are unregistered.
+    // Use world::update() and world::fixed_update() to execute the world's scheduler.
     [[nodiscard]] update_scheduler& scheduler();
 
     // Processes pending removals, including requests made by lifecycle callbacks.

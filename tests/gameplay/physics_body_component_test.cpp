@@ -122,10 +122,7 @@ TEST(physics_body_component_test, contact_query)
     EXPECT_TRUE(body->contacts().empty());
     active.fixed_update(fixed_step);
     EXPECT_GT(active.find_object(falling)->root_component().world_transform().position.y, 4.0f);
-    for (int i{}; i < 4 && !body->contacts().empty(); ++i)
-    {
-        active.fixed_update(fixed_step);
-    }
     EXPECT_TRUE(body->contacts().empty());
+    EXPECT_LT(body->velocity()->linear.y, 0.0f);
 }
 } // namespace

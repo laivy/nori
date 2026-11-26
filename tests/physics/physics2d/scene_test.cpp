@@ -219,6 +219,9 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
     ASSERT_FALSE(points.empty());
     EXPECT_EQ(points.front().self.body, body);
     EXPECT_EQ(points.front().other.body, ground);
+    EXPECT_NEAR(points.front().point.y, 0.5f, 0.1f);
+    EXPECT_GE(points.front().normal_impulse, 0.0f);
+    EXPECT_GE(points.front().total_normal_impulse, 0.0f);
     ASSERT_TRUE(world.set_velocity(body, {{0.0f, 5.0f}, 5.0f})) << "velocity can be set";
     for (int i{}; i < 10; ++i)
     {
@@ -254,6 +257,35 @@ TEST(physics2d_scene_test, contact_normals_and_rotation)
     EXPECT_TRUE(std::ranges::any_of(ceiling_world.contacts_of(rising), [](const auto& point) { return point.normal.y < -0.5f; }));
     EXPECT_FALSE(has_contact_normal(ceiling_world, rising, {0.0f, 1.0f}));
     ASSERT_LT(ceiling_world.transform_of(rising).value().position.y, -0.95f) << "ceiling contact is not ground";
+}
+
+TEST(physics2d_scene_test, move_sleeping_contacts)
+{
+    nori::physics2d::scene world;
+    ASSERT_TRUE(world.set_gravity({0.0f, -10.0f}));
+    const auto ground{world.create_body({.type = nori::physics2d::body_type::static_body})};
+    const auto body{world.create_body({.type = nori::physics2d::body_type::dynamic_body, .transform = {{0.0f, 2.0f}, 0.0f}})};
+    ASSERT_TRUE(world.add_box_collider({ground, {5.0f, 0.5f}}));
+    ASSERT_TRUE(world.add_box_collider({body, {0.5f, 0.5f}}));
+    constexpr float step{1.0f / 60.0f};
+    for (int i{}; i < 180; ++i)
+    {
+        world.step(step);
+    }
+    ASSERT_FALSE(world.contacts_of(body).empty());
+    ASSERT_TRUE(world.set_transform(body, {{0.0f, 5.0f}, 0.0f}));
+    world.step(step);
+    EXPECT_TRUE(world.contacts_of(body).empty());
+    EXPECT_LT(world.transform_of(body)->position.y, 5.0f);
+    for (int i{}; i < 240; ++i)
+    {
+        world.step(step);
+    }
+    ASSERT_FALSE(world.contacts_of(body).empty());
+    ASSERT_TRUE(world.set_transform(ground, {{0.0f, -10.0f}, 0.0f}));
+    world.step(step);
+    EXPECT_TRUE(world.contacts_of(body).empty());
+    EXPECT_LT(world.velocity_of(body)->linear.y, 0.0f);
 }
 
 TEST(physics2d_scene_test, handle_lifetime)

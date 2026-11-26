@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <nori/core/abort.hpp>
@@ -24,6 +25,8 @@ public:
     update_scheduler(const update_scheduler&) = delete;
     update_scheduler& operator=(const update_scheduler&) = delete;
 
+    // The receiver must outlive all registered executions, including the current snapshot.
+    // Unregister its updates before destroying the receiver.
     template <typename T, typename Function>
     requires(std::is_member_function_pointer_v<Function> && std::invocable<Function, T&, float>)
     update_handle register_update(T& instance, update_group group, Function function)

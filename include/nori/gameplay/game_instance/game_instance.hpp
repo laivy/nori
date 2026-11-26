@@ -16,6 +16,7 @@ public:
     game_instance(const game_instance&) = delete;
     game_instance& operator=(const game_instance&) = delete;
 
+    // World creation, clearing and stopping must not be requested from world callbacks.
     void stop();
     world& create_world();
 
@@ -28,6 +29,7 @@ public:
         return active;
     }
 
+    // Releases the active world; active_world() is null during its destruction.
     void clear_world();
     void update(float delta_seconds);
     void fixed_update(float delta_seconds);

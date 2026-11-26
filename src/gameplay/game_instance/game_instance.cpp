@@ -21,11 +21,7 @@ world& game_instance::create_world()
 
 void game_instance::clear_world()
 {
-    if (active_)
-    {
-        active_->clear();
-        active_.reset();
-    }
+    active_.reset();
 }
 
 void game_instance::update(float delta_seconds)

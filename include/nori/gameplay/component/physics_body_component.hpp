@@ -26,6 +26,7 @@ public:
     [[nodiscard]] update_handle pre_physics_update() const;
     [[nodiscard]] std::optional<physics2d::body_velocity> velocity() const;
     bool set_velocity(physics2d::body_velocity value);
+    // Returns physics manifold data; pending or in-progress teleports suppress contacts.
     [[nodiscard]] std::vector<physics2d::contact_point> contacts() const;
     bool teleport(physics2d::body_transform pose, bool preserve_velocity = false);
 
