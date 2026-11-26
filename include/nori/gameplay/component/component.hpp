@@ -44,16 +44,9 @@ protected:
         return owner.registration_scheduler().add(owner, receiver, group, function);
     }
 
-    bool unregister_update(update_handle handle);
-    bool set_update_enabled(update_handle handle, bool enabled);
-    [[nodiscard]] bool is_update_enabled(update_handle handle) const;
-    bool add_update_prerequisite(update_handle target, update_handle prerequisite);
-    bool remove_update_prerequisite(update_handle target, update_handle prerequisite);
-
 private:
     void register_component();
     void unregister_component();
-    [[nodiscard]] update_scheduler* active_scheduler() const;
     update_scheduler& registration_scheduler();
 
     object& owner_;

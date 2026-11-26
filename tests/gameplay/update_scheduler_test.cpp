@@ -2,7 +2,6 @@
 
 #include <gtest/gtest.h>
 
-#include <nori/core/rtti.hpp>
 #include <nori/gameplay/update/update_scheduler.hpp>
 
 namespace
@@ -42,15 +41,24 @@ struct update_probe
     {
         calls.push_back(4);
         ASSERT_TRUE(scheduler.remove(target)) << "removal changed committed state";
-        ASSERT_TRUE(scheduler.is_update_enabled(target)) << "removal changed committed state";
-        ASSERT_TRUE(scheduler.set_update_enabled(disabled, false)) << "disable changed committed state";
-        ASSERT_TRUE(scheduler.is_update_enabled(disabled)) << "disable changed committed state";
-        ASSERT_TRUE(scheduler.set_update_enabled(enabled, true)) << "enable changed committed state";
-        ASSERT_FALSE(scheduler.is_update_enabled(enabled)) << "enable changed committed state";
+        ASSERT_FALSE(scheduler.remove(target));
+        ASSERT_FALSE(scheduler.set_enabled(target, true));
+        ASSERT_FALSE(scheduler.add_prerequisite(target, prerequisite));
+        ASSERT_TRUE(scheduler.is_enabled(target)) << "removal changed committed state";
+        ASSERT_TRUE(scheduler.set_enabled(disabled, false)) << "disable changed committed state";
+        ASSERT_TRUE(scheduler.is_enabled(disabled)) << "disable changed committed state";
+        ASSERT_TRUE(scheduler.set_enabled(enabled, true)) << "enable changed committed state";
+        ASSERT_FALSE(scheduler.is_enabled(enabled)) << "enable changed committed state";
         ASSERT_TRUE(scheduler.add_prerequisite(dependent, prerequisite)) << "deferred prerequisite rejected";
         ASSERT_FALSE(scheduler.add_prerequisite(prerequisite, dependent)) << "pending cycle accepted";
         created = scheduler.add(*this, nori::gameplay::update_group::post_fixed_update, &update_probe::third);
-        ASSERT_FALSE(scheduler.is_update_enabled(created)) << "new registration visible before boundary";
+        ASSERT_FALSE(scheduler.is_enabled(created)) << "new registration visible before boundary";
+        ASSERT_FALSE(scheduler.add_prerequisite(created, target));
+        ASSERT_TRUE(scheduler.set_enabled(created, false));
+        ASSERT_TRUE(scheduler.set_enabled(created, true));
+        ASSERT_TRUE(scheduler.add_prerequisite(created, prerequisite));
+        ASSERT_TRUE(scheduler.remove_prerequisite(created, prerequisite));
+        ASSERT_FALSE(scheduler.remove_prerequisite(created, prerequisite));
         scheduler.remove(self);
     }
 };
@@ -83,11 +91,11 @@ TEST(update_scheduler_test, update_scheduler)
     ASSERT_EQ((calls), (std::vector<int>{1, 2, 3})) << "update ordering or delta seconds incorrect";
     EXPECT_NEAR(probe.last_delta_seconds, fixed_step, 0.0001f) << "update ordering or delta seconds incorrect";
     calls.clear();
-    ASSERT_TRUE(scheduler.set_update_enabled(first, false)) << "disable failed";
-    ASSERT_FALSE(scheduler.is_update_enabled(first)) << "disable failed";
+    ASSERT_TRUE(scheduler.set_enabled(first, false)) << "disable failed";
+    ASSERT_FALSE(scheduler.is_enabled(first)) << "disable failed";
     scheduler.execute(nori::gameplay::update_category::fixed, fixed_step);
     ASSERT_EQ((calls), (std::vector<int>{2, 3})) << "disabled prerequisite incorrectly blocked its dependent";
-    ASSERT_TRUE(scheduler.set_update_enabled(first, true)) << "update edit failed";
+    ASSERT_TRUE(scheduler.set_enabled(first, true)) << "update edit failed";
     ASSERT_TRUE(scheduler.remove_prerequisite(second, first)) << "update edit failed";
     calls.clear();
     scheduler.execute(nori::gameplay::update_category::fixed, fixed_step);
@@ -97,18 +105,18 @@ TEST(update_scheduler_test, update_scheduler)
     probe.target = third;
     probe.disabled = second;
     probe.enabled = scheduler.add(probe, nori::gameplay::update_group::post_physics, &update_probe::second);
-    scheduler.set_update_enabled(probe.enabled, false);
+    scheduler.set_enabled(probe.enabled, false);
     probe.dependent = second;
     probe.prerequisite = first;
     probe.self = scheduler.add(probe, nori::gameplay::update_group::input, &update_probe::mutate);
     scheduler.execute(nori::gameplay::update_category::fixed, fixed_step);
     ASSERT_EQ((calls), (std::vector<int>{4, 2, 1, 3})) << "mutation changed current snapshot";
     ASSERT_FALSE(scheduler.remove(third)) << "stale or foreign handle accepted";
-    ASSERT_FALSE(scheduler.set_update_enabled(other, true)) << "stale or foreign handle accepted";
+    ASSERT_FALSE(scheduler.set_enabled(other, true)) << "stale or foreign handle accepted";
     calls.clear();
     scheduler.execute(nori::gameplay::update_category::fixed, fixed_step);
     ASSERT_EQ((calls), (std::vector<int>{1, 2, 3})) << "deferred edits were not applied at next cycle";
-    ASSERT_TRUE(scheduler.set_update_enabled(second, true)) << "re-enable failed";
+    ASSERT_TRUE(scheduler.set_enabled(second, true)) << "re-enable failed";
     calls.clear();
     scheduler.execute(nori::gameplay::update_category::fixed, fixed_step);
     ASSERT_EQ((calls), (std::vector<int>{1, 2, 2, 3})) << "deferred dependency was not applied";
@@ -152,14 +160,11 @@ TEST(update_scheduler_test, update_ownership)
     const auto a{scheduler.add(base, first, nori::gameplay::update_group::pre_physics, &owner_probe::run)};
     const auto b{scheduler.add(base, first, nori::gameplay::update_group::post_physics, &owner_probe::run)};
     const auto c{scheduler.add(other_base, second, nori::gameplay::update_group::post_physics, &owner_probe::run)};
-    ASSERT_TRUE(scheduler.owns_update(base, a)) << "explicit callback owner did not match its base reference";
-    ASSERT_TRUE(scheduler.owns_update(base, b)) << "explicit callback owner did not match its base reference";
-    ASSERT_FALSE(scheduler.owns_update(base, c)) << "explicit callback owner did not match its base reference";
     ASSERT_TRUE(scheduler.add_prerequisite(c, a)) << "owner prerequisite rejected";
     ASSERT_EQ((scheduler.remove_all(base)), (2)) << "owner removal affected wrong callbacks";
-    ASSERT_FALSE(scheduler.owns_update(base, a)) << "owner removal affected wrong callbacks";
-    ASSERT_FALSE(scheduler.is_update_enabled(b)) << "owner removal affected wrong callbacks";
-    ASSERT_TRUE(scheduler.is_update_enabled(c)) << "owner removal affected wrong callbacks";
+    ASSERT_FALSE(scheduler.is_enabled(a)) << "owner removal affected wrong callbacks";
+    ASSERT_FALSE(scheduler.is_enabled(b)) << "owner removal affected wrong callbacks";
+    ASSERT_TRUE(scheduler.is_enabled(c)) << "owner removal affected wrong callbacks";
     scheduler.execute(nori::gameplay::update_category::fixed, fixed_step);
     ASSERT_EQ((calls), (std::vector<int>{1})) << "owner removal left a dangling dependency or callback";
 
@@ -174,10 +179,9 @@ TEST(update_scheduler_test, update_ownership)
         void run(float)
         {
             created = scheduler.add(target, nori::gameplay::update_group::update, &owner_probe::run);
-            ASSERT_TRUE(scheduler.owns_update(target, created)) << "pending registration ownership or committed state incorrect";
-            ASSERT_FALSE(scheduler.is_update_enabled(created)) << "pending registration ownership or committed state incorrect";
+            ASSERT_FALSE(scheduler.is_enabled(created)) << "pending registration ownership or committed state incorrect";
             ASSERT_EQ((scheduler.remove_all(target)), (2)) << "owner removal modified the current snapshot or missed a pending callback";
-            ASSERT_TRUE(scheduler.is_update_enabled(existing)) << "owner removal modified the current snapshot or missed a pending callback";
+            ASSERT_TRUE(scheduler.is_enabled(existing)) << "owner removal modified the current snapshot or missed a pending callback";
             ASSERT_TRUE(scheduler.remove(own)) << "could not remove mutation callback";
         }
     };
@@ -188,8 +192,10 @@ TEST(update_scheduler_test, update_ownership)
     calls.clear();
     scheduler.execute(nori::gameplay::update_category::fixed, fixed_step);
     ASSERT_EQ((calls), (std::vector<int>{1, 1})) << "owner removal did not commit at category boundary";
-    ASSERT_FALSE(scheduler.owns_update(first, existing)) << "owner removal did not commit at category boundary";
-    ASSERT_FALSE(scheduler.owns_update(first, removal.created)) << "owner removal did not commit at category boundary";
+    ASSERT_FALSE(scheduler.is_enabled(existing));
+    ASSERT_FALSE(scheduler.is_enabled(removal.created));
+    ASSERT_FALSE(scheduler.remove(existing));
+    ASSERT_FALSE(scheduler.remove(removal.created));
     calls.clear();
     scheduler.execute(nori::gameplay::update_category::variable, 0.02f);
     scheduler.execute(nori::gameplay::update_category::fixed, fixed_step);

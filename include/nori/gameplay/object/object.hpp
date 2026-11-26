@@ -127,12 +127,6 @@ protected:
         return owner.registration_scheduler().add(owner, receiver, group, function);
     }
 
-    bool unregister_update(update_handle handle);
-    bool set_update_enabled(update_handle handle, bool enabled);
-    [[nodiscard]] bool is_update_enabled(update_handle handle) const;
-    bool add_update_prerequisite(update_handle target, update_handle prerequisite);
-    bool remove_update_prerequisite(update_handle target, update_handle prerequisite);
-
 private:
     struct child_attachment
     {
@@ -147,8 +141,6 @@ private:
     [[nodiscard]] std::optional<std::vector<child_attachment>> plan_reparenting(const component& comp);
     bool remove_component_now(component& comp);
     void notify_component_removed(const component& removed);
-    update_scheduler& world_scheduler();
-    [[nodiscard]] update_scheduler* active_scheduler() const;
     update_scheduler& registration_scheduler();
 
     gameplay::world* world_;

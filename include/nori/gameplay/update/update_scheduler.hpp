@@ -59,17 +59,11 @@ public:
         return remove_all(static_cast<const void*>(std::addressof(owner)));
     }
 
-    template <typename T>
-    [[nodiscard]] bool owns_update(T& owner, update_handle handle) const
-    {
-        return owns_update(static_cast<const void*>(std::addressof(owner)), handle);
-    }
-
     void execute_lifecycle(std::move_only_function<void()> callback);
 
     bool remove(update_handle handle);
-    bool set_update_enabled(update_handle handle, bool enabled);
-    [[nodiscard]] bool is_update_enabled(update_handle handle) const;
+    bool set_enabled(update_handle handle, bool enabled);
+    [[nodiscard]] bool is_enabled(update_handle handle) const;
 
     bool add_prerequisite(update_handle target, update_handle prerequisite);
     bool remove_prerequisite(update_handle target, update_handle prerequisite);
@@ -92,9 +86,8 @@ private:
 
     function_map& edit_functions();
     update_handle insert(update_function function);
-    [[nodiscard]] const update_function* find(update_handle handle) const;
-    [[nodiscard]] update_function* find(update_handle handle);
-    [[nodiscard]] bool owns_update(const void* owner, update_handle handle) const;
+    [[nodiscard]] const function_map& latest_functions() const;
+    [[nodiscard]] const update_function* find(const function_map& functions, update_handle handle) const;
     std::size_t remove_all(const void* owner);
     [[nodiscard]] static std::vector<std::uint64_t> execution_order(const function_map& functions, update_category category);
 

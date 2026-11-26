@@ -60,70 +60,47 @@ update_handle update_scheduler::insert(update_function function)
     return {id_, id};
 }
 
-const update_scheduler::update_function* update_scheduler::find(update_handle handle) const
+const update_scheduler::function_map& update_scheduler::latest_functions() const
 {
-    if (handle.scheduler != id_)
-    {
-        return nullptr;
-    }
-    const auto it{functions_.find(handle.id)};
-    return it == functions_.end() ? nullptr : &it->second;
+    return pending_functions_ ? *pending_functions_ : functions_;
 }
 
-update_scheduler::update_function* update_scheduler::find(update_handle handle)
+const update_scheduler::update_function* update_scheduler::find(const function_map& functions, update_handle handle) const
 {
     if (handle.scheduler != id_)
     {
         return nullptr;
     }
-    if (executing_ && !pending_functions_ && !functions_.contains(handle.id))
-    {
-        return nullptr;
-    }
-    auto& functions{edit_functions()};
     const auto it{functions.find(handle.id)};
     return it == functions.end() ? nullptr : &it->second;
 }
 
-bool update_scheduler::owns_update(const void* owner, update_handle handle) const
-{
-    if (handle.scheduler != id_)
-    {
-        return false;
-    }
-    const auto matches = [&](const function_map& functions)
-    {
-        const auto it{functions.find(handle.id)};
-        return it != functions.end() && it->second.owner == owner;
-    };
-    return matches(functions_) || (pending_functions_ && matches(*pending_functions_));
-}
-
 std::size_t update_scheduler::remove_all(const void* owner)
 {
-    function_map& functions{edit_functions()};
     std::vector<std::uint64_t> removed;
-    for (auto it{functions.begin()}; it != functions.end();)
+    for (const auto& [id, function] : latest_functions())
     {
-        if (it->second.owner == owner)
+        if (function.owner == owner)
         {
-            removed.push_back(it->first);
-            it = functions.erase(it);
-        }
-        else
-        {
-            ++it;
+            removed.push_back(id);
         }
     }
-    if (!removed.empty())
+    if (removed.empty())
     {
-        for (auto& [_, function] : functions)
+        return 0;
+    }
+
+    auto& functions{edit_functions()};
+    for (const auto id : removed)
+    {
+        functions.erase(id);
+    }
+    for (auto& [_, function] : functions)
+    {
+        std::erase_if(function.prerequisites, [&](std::uint64_t prerequisite)
         {
-            std::erase_if(function.prerequisites, [&](std::uint64_t prerequisite)
-            {
-                return std::ranges::binary_search(removed, prerequisite);
-            });
-        }
+            return std::ranges::binary_search(removed, prerequisite);
+        });
     }
     return removed.size();
 }
@@ -148,7 +125,7 @@ void update_scheduler::execute_lifecycle(std::move_only_function<void()> callbac
 
 bool update_scheduler::remove(update_handle handle)
 {
-    if (!find(handle))
+    if (!find(latest_functions(), handle))
     {
         return false;
     }
@@ -161,26 +138,31 @@ bool update_scheduler::remove(update_handle handle)
     return true;
 }
 
-bool update_scheduler::set_update_enabled(update_handle handle, bool enabled)
+bool update_scheduler::set_enabled(update_handle handle, bool enabled)
 {
-    if (auto* function{find(handle)})
+    const auto function{find(latest_functions(), handle)};
+    if (!function)
     {
-        function->enabled = enabled;
-        return true;
+        return false;
     }
-    return false;
+    if (function->enabled != enabled)
+    {
+        edit_functions().at(handle.id).enabled = enabled;
+    }
+    return true;
 }
 
-bool update_scheduler::is_update_enabled(update_handle handle) const
+bool update_scheduler::is_enabled(update_handle handle) const
 {
-    const auto* function{find(handle)};
+    const auto function{find(functions_, handle)};
     return function && function->enabled;
 }
 
 bool update_scheduler::add_prerequisite(update_handle target, update_handle prerequisite)
 {
-    auto* function{find(target)};
-    const auto* dependency{find(prerequisite)};
+    const auto& latest{latest_functions()};
+    const auto function{find(latest, target)};
+    const auto dependency{find(latest, prerequisite)};
     if (!function || !dependency || target == prerequisite)
     {
         return false;
@@ -193,16 +175,17 @@ bool update_scheduler::add_prerequisite(update_handle target, update_handle prer
     {
         return false;
     }
-    function->prerequisites.push_back(prerequisite.id);
-    const auto& functions{edit_functions()};
     const auto category{category_of(function->group)};
+    auto& functions{edit_functions()};
+    auto& prerequisites{functions.at(target.id).prerequisites};
+    prerequisites.push_back(prerequisite.id);
     const auto count{std::ranges::count_if(functions, [category](const auto& entry)
     {
         return category_of(entry.second.group) == category;
     })};
     if (execution_order(functions, category).size() != static_cast<std::size_t>(count))
     {
-        function->prerequisites.pop_back();
+        prerequisites.pop_back();
         return false;
     }
     return true;
@@ -210,12 +193,14 @@ bool update_scheduler::add_prerequisite(update_handle target, update_handle prer
 
 bool update_scheduler::remove_prerequisite(update_handle target, update_handle prerequisite)
 {
-    auto* function{find(target)};
-    if (!function || !find(prerequisite))
+    const auto& latest{latest_functions()};
+    const auto function{find(latest, target)};
+    if (!function || !find(latest, prerequisite) || !std::ranges::contains(function->prerequisites, prerequisite.id))
     {
         return false;
     }
-    return std::erase(function->prerequisites, prerequisite.id) != 0;
+    std::erase(edit_functions().at(target.id).prerequisites, prerequisite.id);
+    return true;
 }
 
 std::vector<std::uint64_t> update_scheduler::execution_order(const function_map& functions, update_category category)
