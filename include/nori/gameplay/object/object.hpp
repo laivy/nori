@@ -129,7 +129,7 @@ protected:
 private:
     void register_object(gameplay::world& world, object_handle handle);
     void unregister_object();
-    void flush_component_removals();
+    void flush_pending_changes();
 
     template <typename component_type, typename object_type>
     static auto collect_components(object_type& object)

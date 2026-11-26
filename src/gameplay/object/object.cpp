@@ -175,11 +175,11 @@ bool object::contains_component(const component& value) const
     return std::ranges::find(components_, &value, &std::unique_ptr<component>::get) != components_.end();
 }
 
-void object::flush_component_removals()
+void object::flush_pending_changes()
 {
     if (notifying_component_removal_ || (world_ && world_scheduler().is_executing()))
     {
-        core::abort("cannot flush component removals during execution");
+        core::abort("cannot flush pending changes during execution");
     }
     while (!pending_component_removals_.empty())
     {

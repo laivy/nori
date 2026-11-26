@@ -99,7 +99,7 @@ void object_registry::flush_pending_changes()
         }
         else
         {
-            value.value->flush_component_removals();
+            value.value->flush_pending_changes();
         }
     }
 }
