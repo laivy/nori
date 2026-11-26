@@ -16,15 +16,19 @@
 #include <nori/gameplay/update/update_handle.hpp>
 #include <nori/gameplay/update/update_scheduler.hpp>
 
+namespace nori::gameplay::detail
+{
+class object_registry;
+}
+
 namespace nori::gameplay
 {
 class world;
-class object_registry;
 
 class object : public core::rtti<object>
 {
     friend class world;
-    friend class object_registry;
+    friend class detail::object_registry;
 
 public:
     explicit object(core::transform pose = core::transform::identity);

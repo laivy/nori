@@ -5,7 +5,6 @@
 #include <nori/gameplay/game_instance/game_instance.hpp>
 #include <nori/gameplay/object/object.hpp>
 #include <nori/gameplay/object/object_handle.hpp>
-#include <nori/gameplay/object/object_registry.hpp>
 #include <nori/gameplay/update/update_category.hpp>
 #include <nori/gameplay/update/update_group.hpp>
 #include <nori/gameplay/update/update_handle.hpp>

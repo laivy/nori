@@ -8,9 +8,9 @@
 
 #include <nori/core/multicast_delegate.hpp>
 #include <nori/core/rtti.hpp>
+#include <nori/gameplay/detail/object_registry.hpp>
 #include <nori/gameplay/object/object.hpp>
 #include <nori/gameplay/object/object_handle.hpp>
-#include <nori/gameplay/object/object_registry.hpp>
 #include <nori/gameplay/update/update_scheduler.hpp>
 #include <nori/gameplay/world/world_events.hpp>
 #include <nori/physics2d/body.hpp>
@@ -86,7 +86,7 @@ private:
     physics2d::scene physics_;
     update_scheduler scheduler_;
     std::vector<object_handle> pending_destructions_;
-    object_registry objects_;
+    detail::object_registry objects_;
     core::multicast_delegate<void(const trigger_changed&)> trigger_changed_;
     std::vector<trigger_changed> events_;
     std::vector<body_owner> body_owners_;

@@ -10,10 +10,10 @@ target_sources(nori_gameplay
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/component/component.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/component/physics_body_component.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/component/scene_component.hpp
+            ${PROJECT_SOURCE_DIR}/include/nori/gameplay/detail/object_registry.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/game_instance/game_instance.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/object/object.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/object/object_handle.hpp
-            ${PROJECT_SOURCE_DIR}/include/nori/gameplay/object/object_registry.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/update/update_category.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/update/update_group.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/update/update_handle.hpp
@@ -24,9 +24,9 @@ target_sources(nori_gameplay
         component/component.cpp
         component/physics_body_component.cpp
         component/scene_component.cpp
+        detail/object_registry.cpp
         game_instance/game_instance.cpp
         object/object.cpp
-        object/object_registry.cpp
         update/update_scheduler.cpp
         world/world.cpp
         world/world_events.cpp

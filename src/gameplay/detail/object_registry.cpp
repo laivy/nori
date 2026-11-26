@@ -1,10 +1,9 @@
 #include <utility>
 
 #include <nori/core/abort.hpp>
+#include <nori/gameplay/detail/object_registry.hpp>
 
-#include <nori/gameplay/object/object_registry.hpp>
-
-namespace nori::gameplay
+namespace nori::gameplay::detail
 {
 object_registry::object_registry(std::uint64_t world_id) :
     id_{world_id}
@@ -104,4 +103,4 @@ void object_registry::flush_pending_changes()
         }
     }
 }
-} // namespace nori::gameplay
+} // namespace nori::gameplay::detail

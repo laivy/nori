@@ -8,7 +8,7 @@
 #include <nori/gameplay/object/object.hpp>
 #include <nori/gameplay/object/object_handle.hpp>
 
-namespace nori::gameplay
+namespace nori::gameplay::detail
 {
 class object_registry
 {
@@ -30,7 +30,7 @@ public:
     void flush_pending_changes();
 
 private:
-    using slot_handle = core::basic_handle<detail::object_tag>;
+    using slot_handle = core::basic_handle<object_tag>;
 
     struct entry
     {
@@ -44,4 +44,4 @@ private:
     std::uint64_t id_;
     core::slot_map<slot_handle, entry> objects_;
 };
-} // namespace nori::gameplay
+} // namespace nori::gameplay::detail
