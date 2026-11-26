@@ -297,11 +297,6 @@ void update_scheduler::execute(update_category category, float delta_seconds)
     }
 }
 
-bool update_scheduler::is_update_in_snapshot(update_handle handle) const
-{
-    return executing_ && find(handle) != nullptr;
-}
-
 bool update_scheduler::is_executing() const noexcept
 {
     return executing_ || lifecycle_depth_ != 0;

@@ -72,7 +72,6 @@ public:
 
     void execute(update_category category, float delta_seconds);
     [[nodiscard]] bool is_executing() const noexcept;
-    [[nodiscard]] bool is_update_in_snapshot(update_handle handle) const;
 
 private:
     using callback_type = std::move_only_function<void(float)>;

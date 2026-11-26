@@ -81,12 +81,14 @@ bool world::destroy_object(object_handle handle)
 
 void world::update(float delta_seconds)
 {
+    flush_pending_changes();
     scheduler_.execute(update_category::variable, delta_seconds);
     flush_pending_changes();
 }
 
 void world::fixed_update(float delta_seconds)
 {
+    flush_pending_changes();
     scheduler_.execute(update_category::fixed, delta_seconds);
     if (!events_.empty())
     {
@@ -116,7 +118,7 @@ void world::flush_pending_changes()
         while (!pending_destructions_.empty())
         {
             const auto handle{pending_destructions_.front()};
-            pending_destructions_.erase(pending_destructions_.begin());
+            pending_destructions_.pop_front();
             destroy_object(handle);
         }
         changed = false;

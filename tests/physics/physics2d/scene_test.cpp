@@ -297,6 +297,10 @@ TEST(physics2d_scene_test, handle_lifetime)
     ASSERT_TRUE(first.contains(original)) << "both scenes create bodies";
     ASSERT_TRUE(second.contains(foreign)) << "both scenes create bodies";
     ASSERT_NE(original, foreign) << "first handles in different scenes differ";
+    const nori::physics2d::collider_handle collider{original, 0};
+    EXPECT_EQ(collider, (nori::physics2d::collider_handle{original, 0}));
+    EXPECT_NE(collider, (nori::physics2d::collider_handle{original, 1}));
+    EXPECT_NE(collider, (nori::physics2d::collider_handle{foreign, 0}));
     ASSERT_FALSE(first.contains(foreign)) << "foreign handle cannot delete its body";
     ASSERT_FALSE(first.destroy_body(foreign)) << "foreign handle cannot delete its body";
     ASSERT_TRUE(second.contains(foreign)) << "foreign handle cannot delete its body";

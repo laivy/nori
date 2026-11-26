@@ -335,6 +335,33 @@ TEST(object_test, duplicate_cascading_destruction)
     EXPECT_EQ(destroyed, 2);
 }
 
+TEST(object_test, cascading_removals_before_update)
+{
+    for (const bool fixed : {false, true})
+    {
+        std::vector<int> calls;
+        nori::gameplay::world active;
+        const auto source{active.create_object<nori::gameplay::object>()};
+        const auto target{active.create_object<variable_removal_object>(calls)};
+        active.find_object(source)->add_component<removal_callback_component>([&]
+        {
+            EXPECT_TRUE(active.destroy_object(target));
+        }, false);
+        ASSERT_TRUE(active.destroy_object(source));
+        ASSERT_NE(active.find_object(target), nullptr);
+        if (fixed)
+        {
+            active.fixed_update(fixed_step);
+        }
+        else
+        {
+            active.update(0.005f);
+        }
+        EXPECT_EQ(active.find_object(target), nullptr);
+        EXPECT_EQ(calls, (std::vector<int>{30}));
+    }
+}
+
 class shutdown_creation_object final : public nori::core::rtti<shutdown_creation_object, nori::gameplay::object>
 {
 protected:

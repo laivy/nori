@@ -1,6 +1,7 @@
 #pragma once
 #include <concepts>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -94,7 +95,7 @@ private:
     std::uint64_t id_;
     physics2d::scene physics_;
     update_scheduler scheduler_;
-    std::vector<object_handle> pending_destructions_;
+    std::deque<object_handle> pending_destructions_;
     detail::object_registry objects_;
     bool flushing_{};
     bool clearing_{};

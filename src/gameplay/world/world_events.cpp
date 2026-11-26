@@ -4,14 +4,6 @@
 #include <nori/core/abort.hpp>
 #include <nori/gameplay/world/world.hpp>
 
-namespace
-{
-bool is_same_collider(nori::physics2d::collider_handle left, nori::physics2d::collider_handle right)
-{
-    return left.body == right.body && left.index == right.index;
-}
-} // namespace
-
 namespace nori::gameplay
 {
 event_subscription world::subscribe_trigger_changed(trigger_callback callback)
@@ -66,7 +58,7 @@ void world::collect_trigger_events()
         {
             const auto entry{std::ranges::find_if(active_triggers_, [&](const active_trigger& trigger)
             {
-                return is_same_collider(trigger.sensor, event.first) && is_same_collider(trigger.visitor, event.second);
+                return trigger.sensor == event.first && trigger.visitor == event.second;
             })};
             if (entry != active_triggers_.end())
             {
