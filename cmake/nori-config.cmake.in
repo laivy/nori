@@ -73,9 +73,9 @@ foreach (nori_component IN LISTS nori_FIND_COMPONENTS)
 endforeach ()
 
 foreach (nori_target IN ITEMS
-    nori::core nori::io nori::resource nori::asset nori::graphics
-    nori::imgui nori::graphics::imgui nori::nori nori::asset_directxtex nori::directx_guids
-    nori::physics nori::physics_box2d
+    nori::core nori::io nori::resource nori::asset nori::graphics nori::physics
+    nori::imgui nori::graphics::imgui nori::nori
+    nori::asset_directxtex nori::directx_guids nori::physics_box2d
 )
     if (TARGET ${nori_target})
         set_target_properties(${nori_target} PROPERTIES
