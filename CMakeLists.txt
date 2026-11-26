@@ -14,6 +14,7 @@ option(NORI_BUILD_IO "Build nori coroutine and I/O support." ON)
 option(NORI_BUILD_RESOURCE "Build nori resource support." ON)
 option(NORI_BUILD_ASSET "Build nori asset support." ON)
 option(NORI_BUILD_GRAPHICS "Build nori graphics support." ${WIN32})
+option(NORI_BUILD_PHYSICS "Build nori physics support." ON)
 
 option(NORI_ENABLE_IMGUI "Enable Dear ImGui integration for nori graphics." OFF)
 
@@ -28,6 +29,7 @@ set(nori_build_io ${NORI_BUILD_IO})
 set(nori_build_resource ${NORI_BUILD_RESOURCE})
 set(nori_build_asset ${NORI_BUILD_ASSET})
 set(nori_build_graphics ${NORI_BUILD_GRAPHICS})
+set(nori_build_physics ${NORI_BUILD_PHYSICS})
 set(nori_enable_imgui ${NORI_ENABLE_IMGUI})
 
 if (NORI_BUILD_CLI)
@@ -48,7 +50,7 @@ if (nori_build_asset OR nori_build_graphics)
     set(nori_build_resource ON)
 endif ()
 
-if (nori_build_resource OR nori_build_io)
+if (nori_build_resource OR nori_build_io OR nori_build_physics)
     set(nori_build_core ON)
 endif ()
 
@@ -57,7 +59,7 @@ if (NOT WIN32 AND (nori_build_graphics OR NORI_BUILD_NORITOR))
 endif ()
 
 set(nori_enabled_modules)
-foreach (nori_module IN ITEMS core io resource asset graphics)
+foreach (nori_module IN ITEMS core io resource asset graphics physics)
     if (nori_build_${nori_module})
         list(APPEND nori_enabled_modules ${nori_module})
     endif ()

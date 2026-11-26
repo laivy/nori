@@ -44,7 +44,14 @@ if (@nori_build_graphics@)
     nori_import_static_dependency(nori::directx_guids DirectX-Guids.lib)
 endif ()
 
-set(nori_supported_components core io resource asset graphics imgui)
+if (@nori_build_physics@)
+    nori_import_static_dependency(nori::physics_box2d "@CMAKE_STATIC_LIBRARY_PREFIX@nori-box2d@CMAKE_STATIC_LIBRARY_SUFFIX@")
+    if (UNIX AND NOT APPLE)
+        set_property(TARGET nori::physics_box2d APPEND PROPERTY INTERFACE_LINK_LIBRARIES m)
+    endif ()
+endif ()
+
+set(nori_supported_components core io resource asset graphics physics imgui)
 foreach (nori_component IN LISTS nori_supported_components)
     if (nori_component STREQUAL imgui)
         set(nori_component_target nori::graphics::imgui)
@@ -68,6 +75,7 @@ endforeach ()
 foreach (nori_target IN ITEMS
     nori::core nori::io nori::resource nori::asset nori::graphics
     nori::imgui nori::graphics::imgui nori::nori nori::asset_directxtex nori::directx_guids
+    nori::physics nori::physics_box2d
 )
     if (TARGET ${nori_target})
         set_target_properties(${nori_target} PROPERTIES
