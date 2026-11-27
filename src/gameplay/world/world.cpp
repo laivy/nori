@@ -72,7 +72,7 @@ void world::fixed_update(float delta_seconds)
     }
     execute_guarded([this, delta_seconds]()
     {
-        dispatch_update(update_targets(), &object::on_fixed_update, &component::on_fixed_update, delta_seconds);
+        dispatch_update(update_targets(), &object::fixed_update, delta_seconds);
 
         const auto handles{objects()};
         for (const auto handle : handles)
@@ -107,8 +107,8 @@ void world::update(float delta_seconds)
     execute_guarded([this, delta_seconds]()
     {
         const auto targets{update_targets()};
-        dispatch_update(targets, &object::on_update, &component::on_update, delta_seconds);
-        dispatch_update(targets, &object::on_post_update, &component::on_post_update, delta_seconds);
+        dispatch_update(targets, &object::update, delta_seconds);
+        dispatch_update(targets, &object::post_update, delta_seconds);
     });
 }
 
@@ -178,20 +178,16 @@ std::vector<world::update_target> world::update_targets()
     for (const auto handle : handles)
     {
         const auto value{find(handle)};
-        targets.push_back({value, value->components_.size()});
+        targets.push_back({value, value->component_count()});
     }
     return targets;
 }
 
-void world::dispatch_update(const std::vector<update_target>& targets, void (object::*object_callback)(float), void (component::*component_callback)(float), float delta_seconds)
+void world::dispatch_update(const std::vector<update_target>& targets, void (object::*callback)(float, std::size_t), float delta_seconds)
 {
     for (const auto& [value, component_count] : targets)
     {
-        (value->*object_callback)(delta_seconds);
-        for (std::size_t index{}; index < component_count; ++index)
-        {
-            (value->components_[index].get()->*component_callback)(delta_seconds);
-        }
+        (value->*callback)(delta_seconds, component_count);
     }
 }
 

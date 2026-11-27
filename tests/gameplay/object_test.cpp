@@ -212,11 +212,18 @@ public:
 protected:
     void on_register() override
     {
+        EXPECT_TRUE(is_registered());
+        EXPECT_TRUE(owner().is_registered());
+        EXPECT_TRUE(owner().contains_component(*this));
+        EXPECT_FALSE(owner().remove_component(*this));
         calls_.push_back(10);
     }
 
     void on_unregister() override
     {
+        EXPECT_FALSE(is_registered());
+        EXPECT_NE(owner().world(), nullptr);
+        EXPECT_FALSE(owner().remove_component(*this));
         calls_.push_back(20);
     }
 

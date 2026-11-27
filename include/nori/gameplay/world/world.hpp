@@ -29,7 +29,6 @@ class world
     friend class physics_body_component;
     friend class game_instance;
     friend class object;
-    friend class component;
 
 public:
     using trigger_callback = std::move_only_function<void(const trigger_changed&)>;
@@ -95,7 +94,7 @@ private:
     void collect_trigger_events();
 
     [[nodiscard]] std::vector<update_target> update_targets();
-    void dispatch_update(const std::vector<update_target>& targets, void (object::*object_callback)(float), void (component::*component_callback)(float), float delta_seconds);
+    void dispatch_update(const std::vector<update_target>& targets, void (object::*callback)(float, std::size_t), float delta_seconds);
     void execute_guarded(std::move_only_function<void()> callback);
     [[nodiscard]] bool is_executing() const noexcept;
 

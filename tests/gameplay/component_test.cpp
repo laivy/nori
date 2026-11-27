@@ -135,6 +135,30 @@ TEST(component_test, component_references)
     ASSERT_EQ((destroyed), (1)) << "detached component was not destroyed at the boundary";
 }
 
+class recursive_frame_component final : public nori::core::rtti<recursive_frame_component, nori::gameplay::component>
+{
+public:
+    using rtti::rtti;
+
+protected:
+    void on_register() override
+    {
+        owner().world()->end_frame();
+    }
+};
+
+TEST(component_test, registration_disallows_frame_end)
+{
+    EXPECT_DEATH_IF_SUPPORTED(
+        {
+            nori::gameplay::world active;
+            auto& value{*active.find(active.create<nori::gameplay::object>())};
+            value.add_component<recursive_frame_component>();
+        },
+        "cannot flush pending changes during execution"
+    );
+}
+
 class duplicate_removal_probe final : public nori::core::rtti<duplicate_removal_probe, nori::gameplay::component>
 {
 public:

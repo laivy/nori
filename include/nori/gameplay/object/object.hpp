@@ -1,5 +1,6 @@
 #pragma once
 #include <concepts>
+#include <cstddef>
 #include <deque>
 #include <memory>
 #include <optional>
@@ -21,7 +22,6 @@ class world;
 class object : public core::rtti<object>
 {
     friend class world;
-    friend class component;
 
 public:
     explicit object(core::transform pose = core::transform::identity);
@@ -67,7 +67,7 @@ public:
         components_.push_back(std::move(comp));
         if (world_ && !unregistering_components_)
         {
-            static_cast<component&>(*result).register_component();
+            register_component(*result);
         }
         return result;
     }
@@ -129,6 +129,14 @@ private:
 
     void register_object(gameplay::world& world, object_handle handle);
     void unregister_object();
+
+    [[nodiscard]] std::size_t component_count() const noexcept;
+    void fixed_update(float delta_seconds, std::size_t component_count);
+    void update(float delta_seconds, std::size_t component_count);
+    void post_update(float delta_seconds, std::size_t component_count);
+
+    void register_component(component& comp);
+    void unregister_component(component& comp);
     bool flush_pending_changes();
 
     [[nodiscard]] std::optional<std::vector<child_attachment>> plan_reparenting(const component& comp);

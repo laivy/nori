@@ -4,12 +4,10 @@
 namespace nori::gameplay
 {
 class object;
-class world;
 
 class component : public core::rtti<component>
 {
     friend class object;
-    friend class world;
 
 public:
     static constexpr bool is_unique{false};
@@ -37,9 +35,6 @@ protected:
     virtual void on_component_removed(const component& comp) noexcept;
 
 private:
-    void register_component();
-    void unregister_component();
-
     object& owner_;
     bool registered_{};
 };

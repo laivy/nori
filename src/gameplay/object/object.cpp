@@ -24,6 +24,29 @@ object_handle object::handle() const
     return handle_;
 }
 
+bool object::remove_component(component& comp)
+{
+    if (component_lifecycle_active_ || &comp == root_ || !contains_component(comp) || std::ranges::contains(pending_component_removals_, &comp))
+    {
+        return false;
+    }
+    if (world_)
+    {
+        if (!plan_reparenting(comp))
+        {
+            return false;
+        }
+        pending_component_removals_.push_back(&comp);
+        return true;
+    }
+    return remove_component_now(comp);
+}
+
+bool object::contains_component(const component& comp) const
+{
+    return std::ranges::contains(components_, &comp, &std::unique_ptr<component>::get);
+}
+
 bool object::is_registered() const noexcept
 {
     return world_ && !unregistering_components_;
@@ -59,7 +82,7 @@ void object::register_object(gameplay::world& world, object_handle handle)
     handle_ = handle;
     for (const auto& comp : components_)
     {
-        comp->register_component();
+        register_component(*comp);
     }
     world_->execute_guarded([this]()
     {
@@ -88,34 +111,80 @@ void object::unregister_object()
     });
     for (const auto& comp : components_)
     {
-        comp->unregister_component();
+        unregister_component(*comp);
     }
     world_ = nullptr;
     handle_ = {};
     unregistering_components_ = false;
 }
 
-bool object::remove_component(component& comp)
+std::size_t object::component_count() const noexcept
 {
-    if (component_lifecycle_active_ || &comp == root_ || !contains_component(comp) || std::ranges::contains(pending_component_removals_, &comp))
-    {
-        return false;
-    }
-    if (world_)
-    {
-        if (!plan_reparenting(comp))
-        {
-            return false;
-        }
-        pending_component_removals_.push_back(&comp);
-        return true;
-    }
-    return remove_component_now(comp);
+    return components_.size();
 }
 
-bool object::contains_component(const component& comp) const
+void object::fixed_update(float delta_seconds, std::size_t component_count)
 {
-    return std::ranges::contains(components_, &comp, &std::unique_ptr<component>::get);
+    on_fixed_update(delta_seconds);
+    for (std::size_t index{}; index < component_count; ++index)
+    {
+        components_[index]->on_fixed_update(delta_seconds);
+    }
+}
+
+void object::update(float delta_seconds, std::size_t component_count)
+{
+    on_update(delta_seconds);
+    for (std::size_t index{}; index < component_count; ++index)
+    {
+        components_[index]->on_update(delta_seconds);
+    }
+}
+
+void object::post_update(float delta_seconds, std::size_t component_count)
+{
+    on_post_update(delta_seconds);
+    for (std::size_t index{}; index < component_count; ++index)
+    {
+        components_[index]->on_post_update(delta_seconds);
+    }
+}
+
+void object::register_component(component& comp)
+{
+    if (comp.registered_ || &comp.owner() != this || !is_registered() || !contains_component(comp))
+    {
+        core::abort("component registration requires an attached owner and owned component");
+    }
+
+    comp.registered_ = true;
+    world_->execute_guarded([this, &comp]()
+    {
+        component_lifecycle_active_ = true;
+        comp.on_register();
+        component_lifecycle_active_ = false;
+    });
+}
+
+void object::unregister_component(component& comp)
+{
+    if (!comp.registered_)
+    {
+        return;
+    }
+
+    if (world_->is_executing() || (is_registered() && contains_component(comp)))
+    {
+        core::abort("component unregistration requires removal at a lifecycle boundary");
+    }
+
+    comp.registered_ = false;
+    world_->execute_guarded([this, &comp]()
+    {
+        component_lifecycle_active_ = true;
+        comp.on_unregister();
+        component_lifecycle_active_ = false;
+    });
 }
 
 bool object::flush_pending_changes()
@@ -181,7 +250,7 @@ bool object::remove_component_now(component& comp)
     auto retired{std::move(*it)};
     components_.erase(it);
     notify_component_removed(*retired);
-    retired->unregister_component();
+    unregister_component(*retired);
     return true;
 }
 
