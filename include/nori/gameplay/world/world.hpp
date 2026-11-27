@@ -42,7 +42,7 @@ public:
 
     template <core::rtti_type ObjectType, typename... Args>
     requires std::derived_from<ObjectType, object>
-    object_handle create_object(Args&&... args)
+    object_handle create(Args&&... args)
     {
         if (clearing_)
         {
@@ -51,12 +51,12 @@ public:
         return insert(std::make_unique<ObjectType>(std::forward<Args>(args)...));
     }
 
-    [[nodiscard]] object* find_object(object_handle handle);
-    [[nodiscard]] const object* find_object(object_handle handle) const;
+    [[nodiscard]] object* find(object_handle handle);
+    [[nodiscard]] const object* find(object_handle handle) const;
     [[nodiscard]] std::vector<object_handle> objects() const;
     [[nodiscard]] physics2d::scene& physics_scene();
     [[nodiscard]] const physics2d::scene& physics_scene() const;
-    bool destroy_object(object_handle handle);
+    bool destroy(object_handle handle);
 
     [[nodiscard]] event_subscription subscribe_trigger_changed(trigger_callback callback);
     bool unsubscribe(event_subscription subscription);

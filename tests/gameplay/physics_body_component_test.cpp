@@ -52,8 +52,8 @@ TEST(physics_body_component_test, physics_body_lifecycle)
     auto pose{nori::core::transform::identity};
     pose.position.z = 5.0f;
     const nori::gameplay::physics_body_config config{.type = nori::physics2d::body_type::kinematic_body, .velocity = {{6.0f, 0.0f}, 3.0f}};
-    const auto object_handle{active.create_object<test_physics_object>(pose, config)};
-    auto& object{*active.find_object(object_handle)};
+    const auto object_handle{active.create<test_physics_object>(pose, config)};
+    auto& object{*active.find(object_handle)};
     auto& body{*object.find_component<nori::gameplay::physics_body_component>()};
     const auto original{body.body_handle()};
     ASSERT_TRUE(active.physics_scene().contains(original)) << "body was not created during world registration";
@@ -78,8 +78,8 @@ TEST(physics_body_component_test, static_body_sync)
     nori::gameplay::world active;
     auto initial_pose{nori::core::transform::identity};
     initial_pose.position = {2.0f, 1.0f, 3.0f};
-    const auto handle{active.create_object<test_physics_object>(initial_pose, nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::static_body, .colliders = {{{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}}})};
-    auto& object{*active.find_object(handle)};
+    const auto handle{active.create<test_physics_object>(initial_pose, nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::static_body, .colliders = {{{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}}})};
+    auto& object{*active.find(handle)};
     const auto body{object.find_component<nori::gameplay::physics_body_component>()};
     auto next_pose{initial_pose};
     next_pose.position.x = 4.0f;
@@ -101,13 +101,13 @@ TEST(physics_body_component_test, contact_query)
 {
     nori::gameplay::world active;
     ASSERT_TRUE(active.physics_scene().set_gravity({0.0f, -10.0f}));
-    const auto ground{active.create_object<test_physics_object>(nori::core::transform::identity,
+    const auto ground{active.create<test_physics_object>(nori::core::transform::identity,
         nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::static_body, .colliders = {{{5.0f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}}})};
     auto pose{nori::core::transform::identity};
     pose.position.y = 2.0f;
-    const auto falling{active.create_object<test_physics_object>(pose,
+    const auto falling{active.create<test_physics_object>(pose,
         nori::gameplay::physics_body_config{.type = nori::physics2d::body_type::dynamic_body, .lock_rotation = true, .colliders = {{{0.5f, 0.5f}, {}, 0.6f, 0.0f, 1.0f, nori::physics2d::default_collision_filter, false}}})};
-    auto* body{active.find_object(falling)->find_component<nori::gameplay::physics_body_component>()};
+    auto* body{active.find(falling)->find_component<nori::gameplay::physics_body_component>()};
     ASSERT_NE(body, nullptr);
     EXPECT_TRUE(body->contacts().empty());
     for (int i{}; i < 120; ++i)
@@ -116,12 +116,12 @@ TEST(physics_body_component_test, contact_query)
     }
     const auto contacts{body->contacts()};
     ASSERT_FALSE(contacts.empty());
-    EXPECT_EQ(contacts.front().other.body, active.find_object(ground)->find_component<nori::gameplay::physics_body_component>()->body_handle());
+    EXPECT_EQ(contacts.front().other.body, active.find(ground)->find_component<nori::gameplay::physics_body_component>()->body_handle());
     EXPECT_GT(contacts.front().normal.y, 0.5f);
     ASSERT_TRUE(body->teleport({{0.0f, 5.0f}, 0.0f}));
     EXPECT_TRUE(body->contacts().empty());
     active.fixed_update(fixed_step);
-    EXPECT_GT(active.find_object(falling)->root_component().world_transform().position.y, 4.0f);
+    EXPECT_GT(active.find(falling)->root_component().world_transform().position.y, 4.0f);
     EXPECT_TRUE(body->contacts().empty());
     EXPECT_LT(body->velocity()->linear.y, 0.0f);
 }
@@ -136,7 +136,7 @@ TEST(physics_body_component_test, duplicate_body_is_rejected_before_registration
     EXPECT_EQ(detached.find_components<physics_body_component>().size(), 1u);
 
     nori::gameplay::world active;
-    auto& object{*active.find_object(active.create_object<nori::gameplay::object>())};
+    auto& object{*active.find(active.create<nori::gameplay::object>())};
     auto* first{object.add_component<physics_body_component>(config)};
     ASSERT_NE(first, nullptr);
     EXPECT_EQ(object.add_component<physics_body_component>(config), nullptr);

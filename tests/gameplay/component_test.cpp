@@ -170,7 +170,7 @@ TEST(component_test, queued_component_removals)
 {
     int destroyed{};
     nori::gameplay::world active;
-    auto& value{*active.find_object(active.create_object<nori::gameplay::object>())};
+    auto& value{*active.find(active.create<nori::gameplay::object>())};
     auto& target{*value.add_component<tracked_component>(destroyed)};
     auto& observer{*value.add_component<removal_observer>(target)};
     value.add_component<duplicate_removal_probe>(target, destroyed);

@@ -70,7 +70,7 @@ TEST(object_test, world_access)
     EXPECT_EQ(std::as_const(detached).world(), nullptr);
 
     nori::gameplay::world active;
-    auto& attached{*active.find_object(active.create_object<nori::gameplay::object>())};
+    auto& attached{*active.find(active.create<nori::gameplay::object>())};
     EXPECT_EQ(attached.world(), &active);
     EXPECT_EQ(std::as_const(attached).world(), &active);
 }
@@ -141,7 +141,7 @@ TEST(object_test, component_removal_waits_for_frame_end)
     int variable{};
     int destroyed{};
     nori::gameplay::world active;
-    auto& value{*active.find_object(active.create_object<nori::gameplay::object>())};
+    auto& value{*active.find(active.create<nori::gameplay::object>())};
     const auto comp{value.add_component<frame_component>(fixed, variable, destroyed)};
     active.fixed_update(fixed_step);
     active.fixed_update(fixed_step);
@@ -163,19 +163,19 @@ TEST(object_test, object_lifecycle)
     int components_destroyed{};
     nori::gameplay::world active;
     nori::gameplay::world foreign;
-    const auto first{active.create_object<tracked_object>(destroyed)};
-    auto* value{active.find_object(first)};
+    const auto first{active.create<tracked_object>(destroyed)};
+    auto* value{active.find(first)};
     ASSERT_NE(value, nullptr);
-    EXPECT_EQ(foreign.find_object(first), nullptr);
-    EXPECT_EQ(active.find_object({}), nullptr);
+    EXPECT_EQ(foreign.find(first), nullptr);
+    EXPECT_EQ(active.find({}), nullptr);
     auto& comp{*value->add_component<tracked_component>(components_destroyed)};
     ASSERT_EQ((&comp.owner()), (value)) << "component owner or registration was not assigned";
     ASSERT_TRUE(comp.is_registered()) << "component owner or registration was not assigned";
     for (int i{}; i < 128; ++i)
     {
-        active.create_object<nori::gameplay::object>();
+        active.create<nori::gameplay::object>();
     }
-    ASSERT_EQ((active.find_object(first)), (value)) << "object address changed after insertion";
+    ASSERT_EQ((active.find(first)), (value)) << "object address changed after insertion";
     ASSERT_TRUE(value->remove_component(comp)) << "component removal was not deferred";
     ASSERT_TRUE(comp.is_registered()) << "component removal was not deferred";
     ASSERT_TRUE(value->find_component<tracked_component>()) << "component removal was not deferred";
@@ -183,20 +183,20 @@ TEST(object_test, object_lifecycle)
     active.end_frame();
     ASSERT_EQ((components_destroyed), (1)) << "component was not destroyed at the boundary";
     value->add_component<tracked_component>(components_destroyed);
-    ASSERT_TRUE(active.destroy_object(first));
-    EXPECT_EQ(active.find_object(first), value);
-    EXPECT_FALSE(active.destroy_object(first));
+    ASSERT_TRUE(active.destroy(first));
+    EXPECT_EQ(active.find(first), value);
+    EXPECT_FALSE(active.destroy(first));
     EXPECT_EQ(destroyed, 0);
     EXPECT_TRUE(std::ranges::contains(active.objects(), first));
     active.end_frame();
     ASSERT_EQ((destroyed), (1)) << "object or owned component leaked";
     ASSERT_EQ((components_destroyed), (2)) << "object or owned component leaked";
-    const auto next{active.create_object<tracked_object>(destroyed)};
+    const auto next{active.create<tracked_object>(destroyed)};
     ASSERT_EQ((next.slot.index), (first.slot.index)) << "slot reuse accepted a stale handle";
     ASSERT_NE(next.slot.generation, first.slot.generation) << "slot reuse accepted a stale handle";
-    ASSERT_FALSE(active.find_object(first)) << "slot reuse accepted a stale handle";
-    ASSERT_FALSE(active.destroy_object(first)) << "stale handle removed a live object";
-    ASSERT_TRUE(active.find_object(next)) << "stale handle removed a live object";
+    ASSERT_FALSE(active.find(first)) << "slot reuse accepted a stale handle";
+    ASSERT_FALSE(active.destroy(first)) << "stale handle removed a live object";
+    ASSERT_TRUE(active.find(next)) << "stale handle removed a live object";
 }
 
 class lifecycle_update_component final : public nori::core::rtti<lifecycle_update_component, nori::gameplay::component>
@@ -269,8 +269,8 @@ TEST(object_test, update_lifecycle)
 {
     std::vector<int> calls;
     nori::gameplay::world active;
-    const auto handle{active.create_object<lifecycle_update_object>(calls)};
-    auto* object{active.find_object(handle)};
+    const auto handle{active.create<lifecycle_update_object>(calls)};
+    auto* object{active.find(handle)};
     ASSERT_EQ((calls), (std::vector<int>{10})) << "initial component not registered";
     calls.clear();
     active.fixed_update(fixed_step);
@@ -288,7 +288,7 @@ TEST(object_test, update_lifecycle)
     active.update(fixed_step);
     ASSERT_EQ((calls), (std::vector<int>{3, 1, 4, 2})) << "component multi-phase update incorrect";
     calls.clear();
-    ASSERT_TRUE(active.destroy_object(handle));
+    ASSERT_TRUE(active.destroy(handle));
     EXPECT_TRUE(calls.empty());
     active.end_frame();
     ASSERT_EQ((calls), (std::vector<int>{20})) << "object removal did not unregister components";
@@ -321,14 +321,14 @@ protected:
     {
         EXPECT_NEAR(delta_seconds, 0.005f, 0.0001f) << "variable delta seconds incorrect";
         calls_.push_back(5);
-        ASSERT_TRUE(world()->destroy_object(handle())) << "object removal was not deferred";
-        ASSERT_EQ((world()->find_object(handle())), (this)) << "object removal was not deferred";
-        ASSERT_FALSE(world()->destroy_object(handle())) << "duplicate object destruction accepted";
+        ASSERT_TRUE(world()->destroy(handle())) << "object removal was not deferred";
+        ASSERT_EQ((world()->find(handle())), (this)) << "object removal was not deferred";
+        ASSERT_FALSE(world()->destroy(handle())) << "duplicate object destruction accepted";
     }
 
     void on_post_update(float) override
     {
-        ASSERT_EQ((world()->find_object(handle())), (this)) << "object detached during snapshot";
+        ASSERT_EQ((world()->find(handle())), (this)) << "object detached during snapshot";
         calls_.push_back(6);
     }
 
@@ -341,18 +341,18 @@ TEST(object_test, variable_update_lifecycle)
     std::vector<int> calls;
     nori::gameplay::game_instance game;
     auto& active{game.create_world()};
-    const auto handle{active.create_object<variable_removal_object>(calls)};
+    const auto handle{active.create<variable_removal_object>(calls)};
     game.fixed_update(fixed_step);
     ASSERT_EQ((calls), (std::vector<int>{7})) << "fixed update invoked variable callbacks";
     calls.clear();
     game.update(0.005f);
     EXPECT_EQ(calls, (std::vector<int>{5, 6}));
-    EXPECT_NE(active.find_object(handle), nullptr);
+    EXPECT_NE(active.find(handle), nullptr);
     game.fixed_update(fixed_step);
     EXPECT_EQ(calls, (std::vector<int>{5, 6, 7}));
     game.end_frame();
     EXPECT_EQ(calls, (std::vector<int>{5, 6, 7, 30}));
-    EXPECT_EQ(active.find_object(handle), nullptr);
+    EXPECT_EQ(active.find(handle), nullptr);
     calls.clear();
     game.fixed_update(fixed_step);
     game.update(0.005f);
@@ -392,16 +392,16 @@ TEST(object_test, cascading_removals)
 {
     int destroyed{};
     nori::gameplay::world active;
-    active.create_object<nori::gameplay::object>();
-    active.create_object<nori::gameplay::object>();
+    active.create<nori::gameplay::object>();
+    active.create<nori::gameplay::object>();
     const auto handles{active.objects()};
     ASSERT_EQ(handles.size(), 2u);
-    auto& target{*active.find_object(handles.front())};
-    auto& source{*active.find_object(handles.back())};
-    const auto victim{active.create_object<tracked_object>(destroyed)};
+    auto& target{*active.find(handles.front())};
+    auto& source{*active.find(handles.back())};
+    const auto victim{active.create<tracked_object>(destroyed)};
     auto& target_component{*target.add_component<removal_callback_component>([&]
     {
-        EXPECT_TRUE(active.destroy_object(victim));
+        EXPECT_TRUE(active.destroy(victim));
     }, false)};
     source.add_component<removal_callback_component>([&]
     {
@@ -411,7 +411,7 @@ TEST(object_test, cascading_removals)
     active.end_frame();
     EXPECT_EQ(source.find_component<removal_callback_component>(), nullptr);
     EXPECT_EQ(target.find_component<removal_callback_component>(), nullptr);
-    EXPECT_EQ(active.find_object(victim), nullptr);
+    EXPECT_EQ(active.find(victim), nullptr);
     EXPECT_EQ(destroyed, 1);
 }
 
@@ -419,14 +419,14 @@ TEST(object_test, duplicate_cascading_destruction)
 {
     int destroyed{};
     nori::gameplay::world active;
-    const auto source{active.create_object<tracked_object>(destroyed)};
-    const auto target{active.create_object<tracked_object>(destroyed)};
-    active.find_object(source)->add_component<removal_callback_component>([&]
+    const auto source{active.create<tracked_object>(destroyed)};
+    const auto target{active.create<tracked_object>(destroyed)};
+    active.find(source)->add_component<removal_callback_component>([&]
     {
-        EXPECT_FALSE(active.destroy_object(target));
+        EXPECT_FALSE(active.destroy(target));
     }, false);
-    EXPECT_TRUE(active.destroy_object(source));
-    EXPECT_TRUE(active.destroy_object(target));
+    EXPECT_TRUE(active.destroy(source));
+    EXPECT_TRUE(active.destroy(target));
     active.end_frame();
     EXPECT_TRUE(active.objects().empty());
     EXPECT_EQ(destroyed, 2);
@@ -436,17 +436,17 @@ TEST(object_test, cascading_object_removals_at_frame_end)
 {
     std::vector<int> calls;
     nori::gameplay::world active;
-    const auto source{active.create_object<nori::gameplay::object>()};
-    const auto target{active.create_object<variable_removal_object>(calls)};
-    active.find_object(source)->add_component<removal_callback_component>([&]
+    const auto source{active.create<nori::gameplay::object>()};
+    const auto target{active.create<variable_removal_object>(calls)};
+    active.find(source)->add_component<removal_callback_component>([&]
     {
-        EXPECT_TRUE(active.destroy_object(target));
+        EXPECT_TRUE(active.destroy(target));
     }, false);
-    ASSERT_TRUE(active.destroy_object(source));
+    ASSERT_TRUE(active.destroy(source));
     active.fixed_update(fixed_step);
     active.fixed_update(fixed_step);
-    EXPECT_NE(active.find_object(source), nullptr);
-    EXPECT_NE(active.find_object(target), nullptr);
+    EXPECT_NE(active.find(source), nullptr);
+    EXPECT_NE(active.find(target), nullptr);
     EXPECT_EQ(calls, (std::vector<int>{7, 7}));
     active.end_frame();
     EXPECT_TRUE(active.objects().empty());
@@ -458,7 +458,7 @@ class shutdown_creation_object final : public nori::core::rtti<shutdown_creation
 protected:
     void on_unregister() override
     {
-        world()->create_object<nori::gameplay::object>();
+        world()->create<nori::gameplay::object>();
     }
 };
 
@@ -467,7 +467,7 @@ TEST(object_test, creation_during_world_shutdown)
     EXPECT_DEATH_IF_SUPPORTED(
         {
             nori::gameplay::world active;
-            active.create_object<shutdown_creation_object>();
+            active.create<shutdown_creation_object>();
         },
         "cannot create an object while clearing a world"
     );

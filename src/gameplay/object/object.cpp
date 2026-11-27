@@ -51,7 +51,7 @@ void object::on_post_update(float)
 
 void object::register_object(gameplay::world& world, object_handle handle)
 {
-    if (world_ || world.find_object(handle) != this)
+    if (world_ || world.find(handle) != this)
     {
         core::abort("object registration requires an owning world");
     }
@@ -75,7 +75,7 @@ void object::unregister_object()
     {
         return;
     }
-    if (world_->is_executing() || world_->find_object(handle_) == this)
+    if (world_->is_executing() || world_->find(handle_) == this)
     {
         core::abort("object unregistration requires removal at a lifecycle boundary");
     }

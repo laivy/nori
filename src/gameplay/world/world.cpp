@@ -29,12 +29,12 @@ world::~world()
     clear();
 }
 
-object* world::find_object(object_handle handle)
+object* world::find(object_handle handle)
 {
-    return const_cast<object*>(std::as_const(*this).find_object(handle));
+    return const_cast<object*>(std::as_const(*this).find(handle));
 }
 
-const object* world::find_object(object_handle handle) const
+const object* world::find(object_handle handle) const
 {
     return objects_.find(handle);
 }
@@ -54,7 +54,7 @@ const physics2d::scene& world::physics_scene() const
     return physics_;
 }
 
-bool world::destroy_object(object_handle handle)
+bool world::destroy(object_handle handle)
 {
     if (!objects_.contains(handle) || std::ranges::contains(pending_destructions_, handle))
     {
@@ -77,7 +77,7 @@ void world::fixed_update(float delta_seconds)
         const auto handles{objects()};
         for (const auto handle : handles)
         {
-            if (const auto body{find_object(handle)->find_component<physics_body_component>()})
+            if (const auto body{find(handle)->find_component<physics_body_component>()})
             {
                 body->sync_to_physics();
             }
@@ -89,7 +89,7 @@ void world::fixed_update(float delta_seconds)
         }
         for (const auto handle : handles)
         {
-            if (const auto body{find_object(handle)->find_component<physics_body_component>()})
+            if (const auto body{find(handle)->find_component<physics_body_component>()})
             {
                 body->sync_from_physics();
             }
@@ -132,7 +132,7 @@ void world::end_frame()
         changed = false;
         for (const auto handle : objects())
         {
-            if (const auto obj{find_object(handle)})
+            if (const auto obj{find(handle)})
             {
                 if (obj->flush_pending_changes())
                 {
@@ -160,7 +160,7 @@ void world::clear()
     clearing_ = true;
     for (const auto handle : objects())
     {
-        destroy_object(handle);
+        destroy(handle);
     }
     end_frame();
     trigger_changed_ = {};
@@ -177,7 +177,7 @@ std::vector<world::update_target> world::update_targets()
     targets.reserve(handles.size());
     for (const auto handle : handles)
     {
-        const auto value{find_object(handle)};
+        const auto value{find(handle)};
         targets.push_back({value, value->components_.size()});
     }
     return targets;
