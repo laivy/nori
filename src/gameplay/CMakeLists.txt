@@ -14,10 +14,6 @@ target_sources(nori_gameplay
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/game_instance/game_instance.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/object/object.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/object/object_handle.hpp
-            ${PROJECT_SOURCE_DIR}/include/nori/gameplay/update/update_category.hpp
-            ${PROJECT_SOURCE_DIR}/include/nori/gameplay/update/update_group.hpp
-            ${PROJECT_SOURCE_DIR}/include/nori/gameplay/update/update_handle.hpp
-            ${PROJECT_SOURCE_DIR}/include/nori/gameplay/update/update_scheduler.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/world/world.hpp
             ${PROJECT_SOURCE_DIR}/include/nori/gameplay/world/world_events.hpp
     PRIVATE
@@ -27,7 +23,6 @@ target_sources(nori_gameplay
         detail/object_registry.cpp
         game_instance/game_instance.cpp
         object/object.cpp
-        update/update_scheduler.cpp
         world/world.cpp
         world/world_events.cpp
 )

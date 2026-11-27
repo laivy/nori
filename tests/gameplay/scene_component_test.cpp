@@ -65,7 +65,7 @@ TEST(scene_component_test, components)
 TEST(scene_component_test, queued_removal_retries_when_reparenting_fails)
 {
     nori::gameplay::world active;
-    auto& value{*active.find_object(active.create_object<nori::gameplay::object>())};
+    auto& value{*active.find(active.create<nori::gameplay::object>())};
     const auto parent{value.add_component<test_attachment>()};
     const auto child{value.add_component<test_mesh>()};
     ASSERT_TRUE(child->attach_to_component(*parent, nori::gameplay::keep_relative_transform));

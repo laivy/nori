@@ -135,6 +135,30 @@ TEST(component_test, component_references)
     ASSERT_EQ((destroyed), (1)) << "detached component was not destroyed at the boundary";
 }
 
+class recursive_frame_component final : public nori::core::rtti<recursive_frame_component, nori::gameplay::component>
+{
+public:
+    using rtti::rtti;
+
+protected:
+    void on_register() override
+    {
+        owner().world()->end_frame();
+    }
+};
+
+TEST(component_test, registration_disallows_frame_end)
+{
+    EXPECT_DEATH_IF_SUPPORTED(
+        {
+            nori::gameplay::world active;
+            auto& value{*active.find(active.create<nori::gameplay::object>())};
+            value.add_component<recursive_frame_component>();
+        },
+        "cannot flush pending changes during execution"
+    );
+}
+
 class duplicate_removal_probe final : public nori::core::rtti<duplicate_removal_probe, nori::gameplay::component>
 {
 public:
@@ -146,11 +170,6 @@ public:
     }
 
 protected:
-    void on_register() override
-    {
-        register_update(nori::gameplay::update_group::pre_physics, &duplicate_removal_probe::queue_removals);
-    }
-
     void on_unregister() override
     {
         ASSERT_EQ((target_destroyed_), (0)) << "duplicate removal of a queued component was accepted during unregister";
@@ -158,8 +177,7 @@ protected:
         ASSERT_FALSE(owner().remove_component(target_)) << "duplicate removal of a queued component was accepted during unregister";
     }
 
-private:
-    void queue_removals(float)
+    void on_fixed_update(float) override
     {
         ASSERT_TRUE(owner().remove_component(*this)) << "removal requests changed the current snapshot";
         ASSERT_TRUE(owner().remove_component(target_)) << "removal requests changed the current snapshot";
@@ -167,6 +185,7 @@ private:
         ASSERT_TRUE(owner().contains_component(target_)) << "removal requests changed the current snapshot";
     }
 
+private:
     nori::gameplay::component& target_;
     const int& target_destroyed_;
 };
@@ -175,7 +194,7 @@ TEST(component_test, queued_component_removals)
 {
     int destroyed{};
     nori::gameplay::world active;
-    auto& value{*active.find_object(active.create_object<nori::gameplay::object>())};
+    auto& value{*active.find(active.create<nori::gameplay::object>())};
     auto& target{*value.add_component<tracked_component>(destroyed)};
     auto& observer{*value.add_component<removal_observer>(target)};
     value.add_component<duplicate_removal_probe>(target, destroyed);

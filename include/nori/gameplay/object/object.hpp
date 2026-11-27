@@ -1,5 +1,6 @@
 #pragma once
 #include <concepts>
+#include <cstddef>
 #include <deque>
 #include <memory>
 #include <optional>
@@ -13,9 +14,6 @@
 #include <nori/gameplay/component/component.hpp>
 #include <nori/gameplay/component/scene_component.hpp>
 #include <nori/gameplay/object/object_handle.hpp>
-#include <nori/gameplay/update/update_group.hpp>
-#include <nori/gameplay/update/update_handle.hpp>
-#include <nori/gameplay/update/update_scheduler.hpp>
 
 namespace nori::gameplay
 {
@@ -24,7 +22,6 @@ class world;
 class object : public core::rtti<object>
 {
     friend class world;
-    friend class component;
 
 public:
     explicit object(core::transform pose = core::transform::identity);
@@ -70,7 +67,7 @@ public:
         components_.push_back(std::move(comp));
         if (world_ && !unregistering_components_)
         {
-            static_cast<component&>(*result).register_component();
+            register_component(*result);
         }
         return result;
     }
@@ -119,19 +116,9 @@ protected:
     virtual void on_register();
     virtual void on_unregister();
 
-    template <typename Self, typename Function>
-    requires(std::is_member_function_pointer_v<Function> && std::invocable<Function, Self&, float>)
-    update_handle register_update(this Self& receiver, update_group group, Function function)
-    {
-        auto& owner{static_cast<object&>(receiver)};
-        return owner.registration_scheduler().add(owner, receiver, group, function);
-    }
-
-    bool unregister_update(update_handle handle);
-    bool set_update_enabled(update_handle handle, bool enabled);
-    [[nodiscard]] bool is_update_enabled(update_handle handle) const;
-    bool add_update_prerequisite(update_handle target, update_handle prerequisite);
-    bool remove_update_prerequisite(update_handle target, update_handle prerequisite);
+    virtual void on_fixed_update(float delta_seconds);
+    virtual void on_update(float delta_seconds);
+    virtual void on_post_update(float delta_seconds);
 
 private:
     struct child_attachment
@@ -142,14 +129,19 @@ private:
 
     void register_object(gameplay::world& world, object_handle handle);
     void unregister_object();
+
+    [[nodiscard]] std::size_t component_count() const noexcept;
+    void fixed_update(float delta_seconds, std::size_t component_count);
+    void update(float delta_seconds, std::size_t component_count);
+    void post_update(float delta_seconds, std::size_t component_count);
+
+    void register_component(component& comp);
+    void unregister_component(component& comp);
     bool flush_pending_changes();
 
     [[nodiscard]] std::optional<std::vector<child_attachment>> plan_reparenting(const component& comp);
     bool remove_component_now(component& comp);
     void notify_component_removed(const component& removed);
-    update_scheduler& world_scheduler();
-    [[nodiscard]] update_scheduler* active_scheduler() const;
-    update_scheduler& registration_scheduler();
 
     gameplay::world* world_;
     object_handle handle_;

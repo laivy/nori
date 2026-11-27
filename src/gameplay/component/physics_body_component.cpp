@@ -32,11 +32,6 @@ physics2d::body_handle physics_body_component::body_handle() const
     return body_;
 }
 
-update_handle physics_body_component::pre_physics_update() const
-{
-    return pre_physics_update_;
-}
-
 std::optional<physics2d::body_velocity> physics_body_component::velocity() const
 {
     return is_registered() ? owner().world()->physics_scene().velocity_of(body_) : std::nullopt;
@@ -76,8 +71,6 @@ void physics_body_component::on_register()
     {
         static_pose_ = pose;
     }
-    pre_physics_update_ = register_update(update_group::pre_physics, &physics_body_component::on_pre_physics_update);
-    register_update(update_group::post_physics, &physics_body_component::on_post_physics_update);
 }
 
 void physics_body_component::on_unregister()
@@ -86,12 +79,11 @@ void physics_body_component::on_unregister()
     owner_world.physics_scene().destroy_body(body_);
     owner_world.unregister_body(body_);
     body_ = {};
-    pre_physics_update_ = {};
     pending_teleport_.reset();
     teleported_ = false;
 }
 
-void physics_body_component::on_pre_physics_update(float)
+void physics_body_component::sync_to_physics()
 {
     const auto pose{body_pose(owner().root_component().relative_transform())};
     if (pending_teleport_)
@@ -108,7 +100,7 @@ void physics_body_component::on_pre_physics_update(float)
     }
 }
 
-void physics_body_component::on_post_physics_update(float)
+void physics_body_component::sync_from_physics()
 {
     if (config_.type != physics2d::body_type::static_body || teleported_)
     {

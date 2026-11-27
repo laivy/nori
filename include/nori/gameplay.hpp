@@ -5,9 +5,5 @@
 #include <nori/gameplay/game_instance/game_instance.hpp>
 #include <nori/gameplay/object/object.hpp>
 #include <nori/gameplay/object/object_handle.hpp>
-#include <nori/gameplay/update/update_category.hpp>
-#include <nori/gameplay/update/update_group.hpp>
-#include <nori/gameplay/update/update_handle.hpp>
-#include <nori/gameplay/update/update_scheduler.hpp>
 #include <nori/gameplay/world/world.hpp>
 #include <nori/gameplay/world/world_events.hpp>

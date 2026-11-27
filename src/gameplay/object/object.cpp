@@ -24,117 +24,6 @@ object_handle object::handle() const
     return handle_;
 }
 
-update_scheduler& object::world_scheduler()
-{
-    return world_->scheduler();
-}
-
-bool object::is_registered() const noexcept
-{
-    return world_ && !unregistering_components_;
-}
-
-void object::on_register()
-{
-}
-
-void object::on_unregister()
-{
-}
-
-update_scheduler* object::active_scheduler() const
-{
-    return is_registered() ? &world_->scheduler() : nullptr;
-}
-
-bool object::unregister_update(update_handle handle)
-{
-    auto* scheduler{active_scheduler()};
-    return scheduler && scheduler->owns_update(*this, handle) && scheduler->remove(handle);
-}
-
-bool object::set_update_enabled(update_handle handle, bool enabled)
-{
-    auto* scheduler{active_scheduler()};
-    return scheduler && scheduler->owns_update(*this, handle) && scheduler->set_update_enabled(handle, enabled);
-}
-
-bool object::is_update_enabled(update_handle handle) const
-{
-    const auto* scheduler{active_scheduler()};
-    return scheduler && scheduler->owns_update(*this, handle) && scheduler->is_update_enabled(handle);
-}
-
-bool object::add_update_prerequisite(update_handle target, update_handle prerequisite)
-{
-    auto* scheduler{active_scheduler()};
-    return scheduler && scheduler->owns_update(*this, target) && scheduler->add_prerequisite(target, prerequisite);
-}
-
-bool object::remove_update_prerequisite(update_handle target, update_handle prerequisite)
-{
-    auto* scheduler{active_scheduler()};
-    return scheduler && scheduler->owns_update(*this, target) && scheduler->remove_prerequisite(target, prerequisite);
-}
-
-update_scheduler& object::registration_scheduler()
-{
-    auto* scheduler{active_scheduler()};
-    if (!scheduler)
-    {
-        core::abort("update registration requires an active owner");
-    }
-    return *scheduler;
-}
-
-void object::register_object(gameplay::world& world, object_handle handle)
-{
-    if (world_ || world.find_object(handle) != this)
-    {
-        core::abort("object registration requires an owning world");
-    }
-    world_ = &world;
-    handle_ = handle;
-    for (const auto& comp : components_)
-    {
-        comp->register_component();
-    }
-    world_scheduler().execute_lifecycle([this]
-    {
-        component_lifecycle_active_ = true;
-        on_register();
-        component_lifecycle_active_ = false;
-    });
-}
-
-void object::unregister_object()
-{
-    if (!world_ || unregistering_components_)
-    {
-        return;
-    }
-    auto& scheduler{world_scheduler()};
-    if (scheduler.is_executing() || world_->find_object(handle_) == this)
-    {
-        core::abort("object unregistration requires removal at a lifecycle boundary");
-    }
-    unregistering_components_ = true;
-    scheduler.remove_all(*this);
-    scheduler.execute_lifecycle([this]
-    {
-        component_lifecycle_active_ = true;
-        on_unregister();
-        component_lifecycle_active_ = false;
-    });
-    for (const auto& comp : components_)
-    {
-        comp->unregister_component();
-    }
-    world_ = nullptr;
-    handle_ = {};
-    unregistering_components_ = false;
-}
-
 bool object::remove_component(component& comp)
 {
     if (component_lifecycle_active_ || &comp == root_ || !contains_component(comp) || std::ranges::contains(pending_component_removals_, &comp))
@@ -158,9 +47,149 @@ bool object::contains_component(const component& comp) const
     return std::ranges::contains(components_, &comp, &std::unique_ptr<component>::get);
 }
 
+bool object::is_registered() const noexcept
+{
+    return world_ && !unregistering_components_;
+}
+
+void object::on_register()
+{
+}
+
+void object::on_unregister()
+{
+}
+
+void object::on_fixed_update(float)
+{
+}
+
+void object::on_update(float)
+{
+}
+
+void object::on_post_update(float)
+{
+}
+
+void object::register_object(gameplay::world& world, object_handle handle)
+{
+    if (world_ || world.find(handle) != this)
+    {
+        core::abort("object registration requires an owning world");
+    }
+    world_ = &world;
+    handle_ = handle;
+    for (const auto& comp : components_)
+    {
+        register_component(*comp);
+    }
+    world_->execute_guarded([this]()
+    {
+        component_lifecycle_active_ = true;
+        on_register();
+        component_lifecycle_active_ = false;
+    });
+}
+
+void object::unregister_object()
+{
+    if (!world_ || unregistering_components_)
+    {
+        return;
+    }
+    if (world_->is_executing() || world_->find(handle_) == this)
+    {
+        core::abort("object unregistration requires removal at a lifecycle boundary");
+    }
+    unregistering_components_ = true;
+    world_->execute_guarded([this]()
+    {
+        component_lifecycle_active_ = true;
+        on_unregister();
+        component_lifecycle_active_ = false;
+    });
+    for (const auto& comp : components_)
+    {
+        unregister_component(*comp);
+    }
+    world_ = nullptr;
+    handle_ = {};
+    unregistering_components_ = false;
+}
+
+std::size_t object::component_count() const noexcept
+{
+    return components_.size();
+}
+
+void object::fixed_update(float delta_seconds, std::size_t component_count)
+{
+    on_fixed_update(delta_seconds);
+    for (std::size_t index{}; index < component_count; ++index)
+    {
+        components_[index]->on_fixed_update(delta_seconds);
+    }
+}
+
+void object::update(float delta_seconds, std::size_t component_count)
+{
+    on_update(delta_seconds);
+    for (std::size_t index{}; index < component_count; ++index)
+    {
+        components_[index]->on_update(delta_seconds);
+    }
+}
+
+void object::post_update(float delta_seconds, std::size_t component_count)
+{
+    on_post_update(delta_seconds);
+    for (std::size_t index{}; index < component_count; ++index)
+    {
+        components_[index]->on_post_update(delta_seconds);
+    }
+}
+
+void object::register_component(component& comp)
+{
+    if (comp.registered_ || &comp.owner() != this || !is_registered() || !contains_component(comp))
+    {
+        core::abort("component registration requires an attached owner and owned component");
+    }
+
+    comp.registered_ = true;
+    world_->execute_guarded([this, &comp]()
+    {
+        component_lifecycle_active_ = true;
+        comp.on_register();
+        component_lifecycle_active_ = false;
+    });
+}
+
+void object::unregister_component(component& comp)
+{
+    if (!comp.registered_)
+    {
+        return;
+    }
+
+    if (world_->is_executing() || (is_registered() && contains_component(comp)))
+    {
+        core::abort("component unregistration requires removal at a lifecycle boundary");
+    }
+
+    comp.registered_ = false;
+    world_->execute_guarded([this, &comp]()
+    {
+        component_lifecycle_active_ = true;
+        comp.on_unregister();
+        component_lifecycle_active_ = false;
+    });
+}
+
 bool object::flush_pending_changes()
 {
-    if (component_lifecycle_active_ || (world_ && world_scheduler().is_executing()))
+    if (component_lifecycle_active_ || (world_ && world_->is_executing()))
     {
         core::abort("cannot flush pending changes during execution");
     }
@@ -221,7 +250,7 @@ bool object::remove_component_now(component& comp)
     auto retired{std::move(*it)};
     components_.erase(it);
     notify_component_removed(*retired);
-    retired->unregister_component();
+    unregister_component(*retired);
     return true;
 }
 
@@ -238,7 +267,7 @@ void object::notify_component_removed(const component& removed)
     };
     if (world_)
     {
-        world_scheduler().execute_lifecycle(notify);
+        world_->execute_guarded(notify);
     }
     else
     {

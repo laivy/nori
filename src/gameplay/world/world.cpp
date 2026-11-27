@@ -4,6 +4,7 @@
 #include <utility>
 
 #include <nori/core/abort.hpp>
+#include <nori/gameplay/component/physics_body_component.hpp>
 #include <nori/gameplay/world/world.hpp>
 
 namespace
@@ -21,7 +22,6 @@ world::world() :
     {
         core::abort("gameplay world identifier exhausted");
     }
-    scheduler_.add(*this, update_group::physics, &world::on_physics_update);
 }
 
 world::~world()
@@ -29,12 +29,12 @@ world::~world()
     clear();
 }
 
-object* world::find_object(object_handle handle)
+object* world::find(object_handle handle)
 {
-    return const_cast<object*>(std::as_const(*this).find_object(handle));
+    return const_cast<object*>(std::as_const(*this).find(handle));
 }
 
-const object* world::find_object(object_handle handle) const
+const object* world::find(object_handle handle) const
 {
     return objects_.find(handle);
 }
@@ -54,7 +54,7 @@ const physics2d::scene& world::physics_scene() const
     return physics_;
 }
 
-bool world::destroy_object(object_handle handle)
+bool world::destroy(object_handle handle)
 {
     if (!objects_.contains(handle) || std::ranges::contains(pending_destructions_, handle))
     {
@@ -64,31 +64,57 @@ bool world::destroy_object(object_handle handle)
     return true;
 }
 
-void world::update(float delta_seconds)
-{
-    scheduler_.execute(update_category::variable, delta_seconds);
-}
-
 void world::fixed_update(float delta_seconds)
 {
-    scheduler_.execute(update_category::fixed, delta_seconds);
-    if (!events_.empty())
+    if (is_executing() || flushing_ || clearing_)
     {
-        scheduler_.execute_lifecycle([this]()
-        {
-            dispatch_events();
-        });
+        core::abort("recursive world update");
     }
+    execute_guarded([this, delta_seconds]()
+    {
+        dispatch_update(update_targets(), &object::fixed_update, delta_seconds);
+
+        const auto handles{objects()};
+        for (const auto handle : handles)
+        {
+            if (const auto body{find(handle)->find_component<physics_body_component>()})
+            {
+                body->sync_to_physics();
+            }
+        }
+        if (std::isfinite(delta_seconds) && delta_seconds > 0.0f)
+        {
+            physics_.step(delta_seconds);
+            collect_trigger_events();
+        }
+        for (const auto handle : handles)
+        {
+            if (const auto body{find(handle)->find_component<physics_body_component>()})
+            {
+                body->sync_from_physics();
+            }
+        }
+        dispatch_events();
+    });
 }
 
-update_scheduler& world::scheduler()
+void world::update(float delta_seconds)
 {
-    return scheduler_;
+    if (is_executing() || flushing_ || clearing_)
+    {
+        core::abort("recursive world update");
+    }
+    execute_guarded([this, delta_seconds]()
+    {
+        const auto targets{update_targets()};
+        dispatch_update(targets, &object::update, delta_seconds);
+        dispatch_update(targets, &object::post_update, delta_seconds);
+    });
 }
 
 void world::end_frame()
 {
-    if (scheduler_.is_executing() || flushing_)
+    if (is_executing() || flushing_)
     {
         core::abort("cannot flush pending changes during execution");
     }
@@ -106,7 +132,7 @@ void world::end_frame()
         changed = false;
         for (const auto handle : objects())
         {
-            if (const auto obj{find_object(handle)})
+            if (const auto obj{find(handle)})
             {
                 if (obj->flush_pending_changes())
                 {
@@ -127,14 +153,14 @@ object_handle world::insert(std::unique_ptr<object> obj)
 
 void world::clear()
 {
-    if (scheduler_.is_executing() || flushing_ || clearing_)
+    if (is_executing() || flushing_ || clearing_)
     {
         core::abort("cannot clear a world during execution");
     }
     clearing_ = true;
     for (const auto handle : objects())
     {
-        destroy_object(handle);
+        destroy(handle);
     }
     end_frame();
     trigger_changed_ = {};
@@ -144,12 +170,44 @@ void world::clear()
     clearing_ = false;
 }
 
-void world::on_physics_update(float delta_seconds)
+std::vector<world::update_target> world::update_targets()
 {
-    if (std::isfinite(delta_seconds) && delta_seconds > 0.0f)
+    const auto handles{objects()};
+    std::vector<update_target> targets;
+    targets.reserve(handles.size());
+    for (const auto handle : handles)
     {
-        physics_.step(delta_seconds);
-        collect_trigger_events();
+        const auto value{find(handle)};
+        targets.push_back({value, value->component_count()});
     }
+    return targets;
+}
+
+void world::dispatch_update(const std::vector<update_target>& targets, void (object::*callback)(float, std::size_t), float delta_seconds)
+{
+    for (const auto& [value, component_count] : targets)
+    {
+        (value->*callback)(delta_seconds, component_count);
+    }
+}
+
+void world::execute_guarded(std::move_only_function<void()> callback)
+{
+    ++execution_depth_;
+    struct execution_scope
+    {
+        std::size_t& depth;
+
+        ~execution_scope()
+        {
+            --depth;
+        }
+    } scope{execution_depth_};
+    callback();
+}
+
+bool world::is_executing() const noexcept
+{
+    return execution_depth_ != 0;
 }
 } // namespace nori::gameplay

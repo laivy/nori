@@ -172,7 +172,6 @@ if (TARGET nori::gameplay)
             gameplay/object_test.cpp
             gameplay/physics_body_component_test.cpp
             gameplay/scene_component_test.cpp
-            gameplay/update_scheduler_test.cpp
             gameplay/world_test.cpp
     )
 endif ()
