@@ -24,7 +24,7 @@ gameplay::world& game_instance::create_world()
 
 void game_instance::clear_world()
 {
-    if (clearing_world_ || (world_ && (world_->scheduler().is_executing() || world_->flushing_)))
+    if (clearing_world_ || (world_ && (world_->is_executing() || world_->flushing_)))
     {
         core::abort("cannot change worlds during execution; request a world change instead");
     }

@@ -25,6 +25,25 @@ public:
     {
         add_component<nori::gameplay::physics_body_component>(std::move(config));
     }
+
+    void request_body_removal()
+    {
+        remove_body_ = true;
+    }
+
+protected:
+    void on_fixed_update(float) override
+    {
+        if (remove_body_)
+        {
+            auto& body{*find_component<nori::gameplay::physics_body_component>()};
+            const auto handle{body.body_handle()};
+            ASSERT_TRUE(remove_component(body));
+            ASSERT_TRUE(world()->physics_scene().contains(handle));
+        }
+    }
+private:
+    bool remove_body_{};
 };
 
 TEST(physics_body_component_test, physics_body_lifecycle)
@@ -47,30 +66,7 @@ TEST(physics_body_component_test, physics_body_lifecycle)
     active.fixed_update(fixed_step);
     EXPECT_NEAR(object.root_component().world_transform().position.x, 2.1f, 0.0001f) << "velocity-preserving teleport stopped the kinematic body";
 
-    class removal_probe
-    {
-    public:
-        removal_probe(nori::gameplay::world& active, ::nori::gameplay::object& object, nori::gameplay::physics_body_component& body) :
-            active_{active},
-            object_{object},
-            body_{body}
-        {
-        }
-
-        void remove(float)
-        {
-            const auto handle{body_.body_handle()};
-            ASSERT_TRUE(object_.remove_component(body_)) << "body was removed inside update";
-            ASSERT_TRUE(active_.physics_scene().contains(handle)) << "body was removed inside update";
-        }
-
-    private:
-        nori::gameplay::world& active_;
-        ::nori::gameplay::object& object_;
-        nori::gameplay::physics_body_component& body_;
-    } probe{active, object, body};
-
-    active.scheduler().add(probe, nori::gameplay::update_group::input, &removal_probe::remove);
+    static_cast<test_physics_object&>(object).request_body_removal();
     active.fixed_update(fixed_step);
     ASSERT_TRUE(active.physics_scene().contains(original));
     active.end_frame();

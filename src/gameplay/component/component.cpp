@@ -33,6 +33,18 @@ void component::on_unregister()
 {
 }
 
+void component::on_fixed_update(float)
+{
+}
+
+void component::on_update(float)
+{
+}
+
+void component::on_post_update(float)
+{
+}
+
 void component::on_component_removed(const component&) noexcept
 {
 }
@@ -44,9 +56,9 @@ void component::register_component()
         core::abort("component registration requires an attached owner and owned component");
     }
 
-    update_scheduler& scheduler{owner_.world()->scheduler()};
+    auto& owner_world{*owner_.world()};
     registered_ = true;
-    scheduler.execute_lifecycle([this]
+    owner_world.execute_guarded([this]()
     {
         owner_.component_lifecycle_active_ = true;
         on_register();
@@ -61,28 +73,18 @@ void component::unregister_component()
         return;
     }
 
-    update_scheduler& scheduler{owner_.world()->scheduler()};
-    if (scheduler.is_executing() || (owner_.is_registered() && owner_.contains_component(*this)))
+    auto& owner_world{*owner_.world()};
+    if (owner_world.is_executing() || (owner_.is_registered() && owner_.contains_component(*this)))
     {
         core::abort("component unregistration requires removal at a lifecycle boundary");
     }
 
     registered_ = false;
-    scheduler.remove_all(*this);
-    scheduler.execute_lifecycle([this]
+    owner_world.execute_guarded([this]()
     {
         owner_.component_lifecycle_active_ = true;
         on_unregister();
         owner_.component_lifecycle_active_ = false;
     });
-}
-
-update_scheduler& component::registration_scheduler()
-{
-    if (!is_registered() || !owner_.is_registered())
-    {
-        core::abort("update registration requires an active owner");
-    }
-    return owner_.world()->scheduler();
 }
 } // namespace nori::gameplay

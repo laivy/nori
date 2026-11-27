@@ -113,12 +113,9 @@ protected:
     void on_register() override
     {
         EXPECT_FALSE(owner().remove_component(*this));
-        register_update(nori::gameplay::update_group::pre_physics, &frame_component::fixed);
-        register_update(nori::gameplay::update_group::update, &frame_component::variable);
     }
 
-private:
-    void fixed(float)
+    void on_fixed_update(float) override
     {
         if (++fixed_ == 1)
         {
@@ -127,11 +124,12 @@ private:
         }
     }
 
-    void variable(float)
+    void on_update(float) override
     {
         ++variable_;
     }
 
+private:
     int& fixed_;
     int& variable_;
     int& destroyed_;
@@ -215,8 +213,6 @@ protected:
     void on_register() override
     {
         calls_.push_back(10);
-        register_update(nori::gameplay::update_group::pre_physics, &lifecycle_update_component::before);
-        register_update(nori::gameplay::update_group::post_physics, &lifecycle_update_component::after);
     }
 
     void on_unregister() override
@@ -224,8 +220,7 @@ protected:
         calls_.push_back(20);
     }
 
-private:
-    void before(float)
+    void on_fixed_update(float) override
     {
         calls_.push_back(1);
         if (remove_self_)
@@ -236,11 +231,12 @@ private:
         }
     }
 
-    void after(float)
+    void on_post_update(float) override
     {
         calls_.push_back(2);
     }
 
+private:
     std::vector<int>& calls_;
     bool remove_self_;
 };
@@ -255,23 +251,17 @@ public:
     }
 
 protected:
-    void on_register() override
-    {
-        register_update(nori::gameplay::update_group::input, &lifecycle_update_object::before);
-        register_update(nori::gameplay::update_group::post_fixed_update, &lifecycle_update_object::after);
-    }
-
-private:
-    void before(float)
+    void on_fixed_update(float) override
     {
         calls_.push_back(3);
     }
 
-    void after(float)
+    void on_post_update(float) override
     {
         calls_.push_back(4);
     }
 
+private:
     std::vector<int>& calls_;
 };
 
@@ -284,16 +274,19 @@ TEST(object_test, update_lifecycle)
     ASSERT_EQ((calls), (std::vector<int>{10})) << "initial component not registered";
     calls.clear();
     active.fixed_update(fixed_step);
-    ASSERT_EQ((calls), (std::vector<int>{3, 1, 2, 4}));
+    ASSERT_EQ((calls), (std::vector<int>{3, 1}));
+    active.update(fixed_step);
+    ASSERT_EQ((calls), (std::vector<int>{3, 1, 4, 2}));
     active.end_frame();
-    ASSERT_EQ((calls), (std::vector<int>{3, 1, 2, 4, 20})) << "component removal did not wait until cycle boundary";
+    ASSERT_EQ((calls), (std::vector<int>{3, 1, 4, 2, 20})) << "component removal did not wait until cycle boundary";
     ASSERT_FALSE(object->find_component<lifecycle_update_component>()) << "component removal did not wait until cycle boundary";
     auto& added{*object->add_component<lifecycle_update_component>(calls, false)};
     ASSERT_EQ((&added.owner()), (object)) << "dynamic component registration failed";
     ASSERT_EQ((calls.back()), (10)) << "dynamic component registration failed";
     calls.clear();
     active.fixed_update(fixed_step);
-    ASSERT_EQ((calls), (std::vector<int>{3, 1, 2, 4})) << "component multi-group update incorrect";
+    active.update(fixed_step);
+    ASSERT_EQ((calls), (std::vector<int>{3, 1, 4, 2})) << "component multi-phase update incorrect";
     calls.clear();
     ASSERT_TRUE(active.destroy_object(handle));
     EXPECT_TRUE(calls.empty());
@@ -313,20 +306,18 @@ public:
     }
 
 protected:
-    void on_register() override
-    {
-        register_update(nori::gameplay::update_group::update, &variable_removal_object::remove_self);
-        register_update(nori::gameplay::update_group::late_update, &variable_removal_object::late);
-        register_update(nori::gameplay::update_group::pre_physics, &variable_removal_object::fixed);
-    }
-
     void on_unregister() override
     {
         calls_.push_back(30);
     }
 
-private:
-    void remove_self(float delta_seconds)
+    void on_fixed_update(float delta_seconds) override
+    {
+        EXPECT_NEAR(delta_seconds, fixed_step, 0.0001f) << "fixed delta seconds incorrect";
+        calls_.push_back(7);
+    }
+
+    void on_update(float delta_seconds) override
     {
         EXPECT_NEAR(delta_seconds, 0.005f, 0.0001f) << "variable delta seconds incorrect";
         calls_.push_back(5);
@@ -335,18 +326,13 @@ private:
         ASSERT_FALSE(world()->destroy_object(handle())) << "duplicate object destruction accepted";
     }
 
-    void late(float)
+    void on_post_update(float) override
     {
         ASSERT_EQ((world()->find_object(handle())), (this)) << "object detached during snapshot";
         calls_.push_back(6);
     }
 
-    void fixed(float delta_seconds)
-    {
-        EXPECT_NEAR(delta_seconds, fixed_step, 0.0001f) << "fixed delta seconds incorrect";
-        calls_.push_back(7);
-    }
-
+private:
     std::vector<int>& calls_;
 };
 
@@ -384,25 +370,20 @@ public:
     }
 
 protected:
-    void on_register() override
-    {
-        if (remove_self_)
-        {
-            register_update(nori::gameplay::update_group::pre_physics, &removal_callback_component::update);
-        }
-    }
-
     void on_unregister() override
     {
         callback_();
     }
 
-private:
-    void update(float)
+    void on_fixed_update(float) override
     {
-        EXPECT_TRUE(owner().remove_component(*this));
+        if (remove_self_)
+        {
+            EXPECT_TRUE(owner().remove_component(*this));
+        }
     }
 
+private:
     std::move_only_function<void()> callback_;
     bool remove_self_;
 };
@@ -444,11 +425,8 @@ TEST(object_test, duplicate_cascading_destruction)
     {
         EXPECT_FALSE(active.destroy_object(target));
     }, false);
-    active.scheduler().execute_lifecycle([&]
-    {
-        EXPECT_TRUE(active.destroy_object(source));
-        EXPECT_TRUE(active.destroy_object(target));
-    });
+    EXPECT_TRUE(active.destroy_object(source));
+    EXPECT_TRUE(active.destroy_object(target));
     active.end_frame();
     EXPECT_TRUE(active.objects().empty());
     EXPECT_EQ(destroyed, 2);

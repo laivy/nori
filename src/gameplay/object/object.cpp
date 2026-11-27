@@ -37,13 +37,16 @@ void object::on_unregister()
 {
 }
 
-update_scheduler& object::registration_scheduler()
+void object::on_fixed_update(float)
 {
-    if (!is_registered())
-    {
-        core::abort("update registration requires an active owner");
-    }
-    return world_->scheduler();
+}
+
+void object::on_update(float)
+{
+}
+
+void object::on_post_update(float)
+{
 }
 
 void object::register_object(gameplay::world& world, object_handle handle)
@@ -58,7 +61,7 @@ void object::register_object(gameplay::world& world, object_handle handle)
     {
         comp->register_component();
     }
-    world_->scheduler().execute_lifecycle([this]
+    world_->execute_guarded([this]()
     {
         component_lifecycle_active_ = true;
         on_register();
@@ -72,14 +75,12 @@ void object::unregister_object()
     {
         return;
     }
-    auto& scheduler{world_->scheduler()};
-    if (scheduler.is_executing() || world_->find_object(handle_) == this)
+    if (world_->is_executing() || world_->find_object(handle_) == this)
     {
         core::abort("object unregistration requires removal at a lifecycle boundary");
     }
     unregistering_components_ = true;
-    scheduler.remove_all(*this);
-    scheduler.execute_lifecycle([this]
+    world_->execute_guarded([this]()
     {
         component_lifecycle_active_ = true;
         on_unregister();
@@ -119,7 +120,7 @@ bool object::contains_component(const component& comp) const
 
 bool object::flush_pending_changes()
 {
-    if (component_lifecycle_active_ || (world_ && world_->scheduler().is_executing()))
+    if (component_lifecycle_active_ || (world_ && world_->is_executing()))
     {
         core::abort("cannot flush pending changes during execution");
     }
@@ -197,7 +198,7 @@ void object::notify_component_removed(const component& removed)
     };
     if (world_)
     {
-        world_->scheduler().execute_lifecycle(notify);
+        world_->execute_guarded(notify);
     }
     else
     {

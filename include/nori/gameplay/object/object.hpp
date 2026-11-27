@@ -13,9 +13,6 @@
 #include <nori/gameplay/component/component.hpp>
 #include <nori/gameplay/component/scene_component.hpp>
 #include <nori/gameplay/object/object_handle.hpp>
-#include <nori/gameplay/update/update_group.hpp>
-#include <nori/gameplay/update/update_handle.hpp>
-#include <nori/gameplay/update/update_scheduler.hpp>
 
 namespace nori::gameplay
 {
@@ -119,13 +116,9 @@ protected:
     virtual void on_register();
     virtual void on_unregister();
 
-    template <typename Self, typename Function>
-    requires(std::is_member_function_pointer_v<Function> && std::invocable<Function, Self&, float>)
-    update_handle register_update(this Self& receiver, update_group group, Function function)
-    {
-        auto& owner{static_cast<object&>(receiver)};
-        return owner.registration_scheduler().add(owner, receiver, group, function);
-    }
+    virtual void on_fixed_update(float delta_seconds);
+    virtual void on_update(float delta_seconds);
+    virtual void on_post_update(float delta_seconds);
 
 private:
     struct child_attachment
@@ -141,7 +134,6 @@ private:
     [[nodiscard]] std::optional<std::vector<child_attachment>> plan_reparenting(const component& comp);
     bool remove_component_now(component& comp);
     void notify_component_removed(const component& removed);
-    update_scheduler& registration_scheduler();
 
     gameplay::world* world_;
     object_handle handle_;

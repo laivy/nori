@@ -27,30 +27,38 @@ TEST(game_instance_test, world_initializer)
     game.clear_world();
     EXPECT_EQ(game.world(), nullptr);
 }
+class update_probe final : public nori::core::rtti<update_probe, nori::gameplay::object>
+{
+public:
+    update_probe(nori::gameplay::game_instance& game, bool& called) :
+        game_{game},
+        called_{called}
+    {
+    }
+
+protected:
+    void on_update(float) override
+    {
+        game_.request_clear_world();
+        EXPECT_EQ(game_.world(), world());
+        called_ = true;
+    }
+
+private:
+    nori::gameplay::game_instance& game_;
+    bool& called_;
+};
+
 TEST(game_instance_test, update_can_request_clearing_the_world)
 {
-    struct update_probe
-    {
-        nori::gameplay::game_instance& game;
-        nori::gameplay::world& active;
-        bool called;
-
-        void run(float)
-        {
-            game.request_clear_world();
-            EXPECT_EQ(game.world(), &active);
-            called = true;
-        }
-    };
-
+    bool called{};
     nori::gameplay::game_instance game;
     auto& active{game.create_world()};
-    update_probe probe{game, active, false};
-    active.scheduler().add(probe, nori::gameplay::update_group::update, &update_probe::run);
+    active.create_object<update_probe>(game, called);
 
     game.update(1.0f / 60.0f);
 
-    EXPECT_TRUE(probe.called);
+    EXPECT_TRUE(called);
     EXPECT_EQ(game.world(), &active);
     game.end_frame();
     EXPECT_EQ(game.world(), nullptr);

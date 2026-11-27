@@ -146,11 +146,6 @@ public:
     }
 
 protected:
-    void on_register() override
-    {
-        register_update(nori::gameplay::update_group::pre_physics, &duplicate_removal_probe::queue_removals);
-    }
-
     void on_unregister() override
     {
         ASSERT_EQ((target_destroyed_), (0)) << "duplicate removal of a queued component was accepted during unregister";
@@ -158,8 +153,7 @@ protected:
         ASSERT_FALSE(owner().remove_component(target_)) << "duplicate removal of a queued component was accepted during unregister";
     }
 
-private:
-    void queue_removals(float)
+    void on_fixed_update(float) override
     {
         ASSERT_TRUE(owner().remove_component(*this)) << "removal requests changed the current snapshot";
         ASSERT_TRUE(owner().remove_component(target_)) << "removal requests changed the current snapshot";
@@ -167,6 +161,7 @@ private:
         ASSERT_TRUE(owner().contains_component(target_)) << "removal requests changed the current snapshot";
     }
 
+private:
     nori::gameplay::component& target_;
     const int& target_destroyed_;
 };

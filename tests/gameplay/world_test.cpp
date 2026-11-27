@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstddef>
 #include <utility>
 #include <vector>
@@ -27,6 +28,91 @@ public:
         add_component<nori::gameplay::physics_body_component>(std::move(config));
     }
 };
+
+class update_probe_component final : public nori::core::rtti<update_probe_component, nori::gameplay::component>
+{
+public:
+    update_probe_component(nori::gameplay::object& owner, std::vector<int>& calls) :
+        rtti{owner},
+        calls_{calls}
+    {
+    }
+
+protected:
+    void on_fixed_update(float) override
+    {
+        calls_.push_back(2);
+    }
+
+    void on_update(float) override
+    {
+        calls_.push_back(4);
+    }
+
+    void on_post_update(float) override
+    {
+        calls_.push_back(6);
+    }
+
+private:
+    std::vector<int>& calls_;
+};
+
+class update_probe_object final : public nori::core::rtti<update_probe_object, nori::gameplay::object>
+{
+public:
+    explicit update_probe_object(std::vector<int>& calls) :
+        calls_{calls}
+    {
+        add_component<update_probe_component>(calls_);
+    }
+
+protected:
+    void on_fixed_update(float) override
+    {
+        calls_.push_back(1);
+    }
+
+    void on_update(float) override
+    {
+        calls_.push_back(3);
+        if (!added_)
+        {
+            added_ = true;
+            add_component<update_probe_component>(calls_);
+            world()->create_object<update_probe_object>(calls_);
+        }
+    }
+
+    void on_post_update(float) override
+    {
+        calls_.push_back(5);
+    }
+
+private:
+    std::vector<int>& calls_;
+    bool added_{};
+};
+
+TEST(world_test, update_phases)
+{
+    std::vector<int> calls;
+    nori::gameplay::world active;
+    active.create_object<update_probe_object>(calls);
+    active.create_object<update_probe_object>(calls);
+
+    active.fixed_update(fixed_step);
+    EXPECT_EQ(calls, (std::vector<int>{1, 2, 1, 2}));
+    calls.clear();
+    active.update(fixed_step);
+    EXPECT_EQ(calls, (std::vector<int>{3, 4, 3, 4, 5, 6, 5, 6}));
+
+    calls.clear();
+    active.fixed_update(fixed_step);
+    EXPECT_EQ(calls.size(), 10u);
+    EXPECT_EQ(std::ranges::count(calls, 1), 4);
+    EXPECT_EQ(std::ranges::count(calls, 2), 6);
+}
 
 TEST(world_test, gameplay_trigger_events)
 {

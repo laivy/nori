@@ -1,19 +1,15 @@
 #pragma once
-#include <concepts>
-#include <type_traits>
-
 #include <nori/core/rtti.hpp>
-#include <nori/gameplay/update/update_group.hpp>
-#include <nori/gameplay/update/update_handle.hpp>
-#include <nori/gameplay/update/update_scheduler.hpp>
 
 namespace nori::gameplay
 {
 class object;
+class world;
 
 class component : public core::rtti<component>
 {
     friend class object;
+    friend class world;
 
 public:
     static constexpr bool is_unique{false};
@@ -34,20 +30,15 @@ protected:
     virtual void on_register();
     virtual void on_unregister();
 
-    virtual void on_component_removed(const component& comp) noexcept;
+    virtual void on_fixed_update(float delta_seconds);
+    virtual void on_update(float delta_seconds);
+    virtual void on_post_update(float delta_seconds);
 
-    template <typename Self, typename Function>
-    requires(std::is_member_function_pointer_v<Function> && std::invocable<Function, Self&, float>)
-    update_handle register_update(this Self& receiver, update_group group, Function function)
-    {
-        auto& owner{static_cast<component&>(receiver)};
-        return owner.registration_scheduler().add(owner, receiver, group, function);
-    }
+    virtual void on_component_removed(const component& comp) noexcept;
 
 private:
     void register_component();
     void unregister_component();
-    update_scheduler& registration_scheduler();
 
     object& owner_;
     bool registered_{};
